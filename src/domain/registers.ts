@@ -103,6 +103,11 @@ export function is_register_id(value: string): value is RegisterId {
   return (REGISTER_IDS as readonly string[]).includes(value)
 }
 
+export function parse_register_id(value: unknown): RegisterId | null {
+  if (typeof value !== 'string' || !is_register_id(value)) return null
+  return value
+}
+
 export function register_of(id: RegisterId): RegisterDefinition {
   const found = REGISTERS.find((register) => register.id === id)
   if (!found) {

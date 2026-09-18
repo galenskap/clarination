@@ -42,7 +42,6 @@ function on_select_source(device_id: string) {
 
 function go_home() {
   pitch.stop()
-  mic.stop()
   void router.push('/')
 }
 
@@ -55,13 +54,15 @@ watch(
   },
 )
 
-onMounted(() => {
-  /* L’utilisateur déclenche le micro via le gate (gesture requis iOS). */
+onMounted(async () => {
+  const media_stream = await mic.ensure_access()
+  if (media_stream) {
+    await pitch.start()
+  }
 })
 
 onUnmounted(() => {
   pitch.stop()
-  mic.stop()
 })
 </script>
 
