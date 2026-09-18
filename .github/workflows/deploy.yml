@@ -1,0 +1,107 @@
+# Déploiement automatique sur push master → VPS (rsync de dist/)
+#
+# Secrets GitHub requis (Settings → Secrets and variables → Actions) :
+#   VPS_HOST              hôte SSH, ex. vps-aa9f2587.vps.ovh.net
+#   VPS_USER              utilisateur SSH, ex. ubuntu
+#   VPS_SSH_PRIVATE_KEY   clé privée SSH autorisée sur le VPS (ed25519)
+#   VPS_PATH              racine web distante, ex. /var/www/clarination
+#
+# Optionnels :
+#   VPS_PORT              port SSH, défaut 22
+#   DEPLOY_URL            URL HTTPS pour vérifier le déploiement
+#
+# Sur le VPS : dossier VPS_PATH + vhost Nginx (voir deploy/nginx.conf) + Certbot.
+
+name: Déploiement production
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Construire et déployer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Construire
+        run: npm run build
+
+      - name: Préparer la clé SSH
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_SSH_PRIVATE_KEY}" || { echo "::error::Secret VPS_SSH_PRIVATE_KEY manquant." >&2; exit 1; }
+          test -n "${VPS_HOST}" || { echo "::error::Secret VPS_HOST manquant." >&2; exit 1; }
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${VPS_SSH_PRIVATE_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          port="${VPS_PORT:-22}"
+          ssh-keyscan -p "${port}" "${VPS_HOST}" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+
+      - name: Synchroniser dist/ vers le VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_USER}" || { echo "::error::Secret VPS_USER manquant." >&2; exit 1; }
+          test -n "${VPS_PATH}" || { echo "::error::Secret VPS_PATH manquant." >&2; exit 1; }
+
+          port="${VPS_PORT:-22}"
+          rsync_ssh="ssh -i ~/.ssh/deploy_key -p ${port} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+
+          ${rsync_ssh} "${VPS_USER}@${VPS_HOST}" "mkdir -p '${VPS_PATH}'"
+
+          rsync -az --delete \
+            -e "${rsync_ssh}" \
+            ./dist/ \
+            "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/"
+
+      - name: Vérifier que le site répond
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_URL}" ]; then
+            echo "DEPLOY_URL non défini, vérification ignorée."
+            exit 0
+          fi
+          code="$(curl -sL -o /dev/null -w '%{http_code}' --max-time 30 "${DEPLOY_URL}/" || echo 000)"
+          echo "Code HTTP : ${code}"
+          if [ "${code}" != "200" ]; then
+            echo "::error::L’URL de déploiement répond ${code} au lieu de 200." >&2
+            exit 1
+          fi
+
+      - name: Nettoyer la clé SSH
+        if: always()
+        run: rm -f ~/.ssh/deploy_key ~/.ssh/known_hosts
