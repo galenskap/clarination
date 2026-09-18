@@ -4,7 +4,7 @@
 #   VPS_HOST              hôte SSH, ex. vps-aa9f2587.vps.ovh.net
 #   VPS_USER              utilisateur SSH, ex. ubuntu
 #   VPS_SSH_PRIVATE_KEY   clé privée SSH autorisée sur le VPS (ed25519)
-#   VPS_PATH              racine web distante, ex. /var/www/clarination
+#   VPS_PATH              racine web distante, ex. /var/www/clarina
 #
 # Optionnels :
 #   VPS_PORT              port SSH, défaut 22

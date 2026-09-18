@@ -75,14 +75,6 @@ function on_register_change(register_id: RegisterId) {
 }
 
 watch(
-  mic_is_hearing,
-  (hearing) => {
-    game.set_hearing(hearing)
-  },
-  { immediate: true },
-)
-
-watch(
   () => pitch.analysis.value,
   (analysis) => {
     if (!analysis) {

@@ -42,8 +42,6 @@ export function use_game_session() {
   let raf_id = 0
   let last_tick = 0
   let accumulated_while_running = 0
-  let silence_ms = 0
-  let is_hearing = false
 
   const success_count = computed(() => trials.value.filter((t) => t.success).length)
   const fail_count = computed(() => trials.value.filter((t) => !t.success).length)
@@ -66,7 +64,6 @@ export function use_game_session() {
     show_fingerings.value = false
     confirm_count = 0
     accumulated_while_running = 0
-    silence_ms = 0
     elapsed_ms.value = 0
     last_tick = performance.now()
     challenge.value = {
@@ -102,17 +99,11 @@ export function use_game_session() {
         accumulated_while_running += delta
         elapsed_ms.value = accumulated_while_running
 
-        if (is_hearing) {
-          silence_ms = 0
-        } else {
-          silence_ms += delta
-        }
-
-        /* Doigté : après un silence. Note perdue : durée totale d’affichage. */
+        /* Doigté puis note perdue : durée totale d’affichage. */
         const hint_ms = options.hint_seconds.value * 1000
         const fail_ms = options.fail_seconds.value * 1000
 
-        if (silence_ms >= hint_ms) {
+        if (elapsed_ms.value >= hint_ms) {
           show_fingerings.value = true
         }
 
@@ -141,15 +132,6 @@ export function use_game_session() {
     raf_id = 0
     challenge.value = null
     show_fingerings.value = false
-    is_hearing = false
-    silence_ms = 0
-  }
-
-  function set_hearing(hearing: boolean) {
-    is_hearing = hearing
-    if (hearing) {
-      silence_ms = 0
-    }
   }
 
   function on_pitch(
@@ -182,7 +164,6 @@ export function use_game_session() {
     show_fingerings.value = false
     confirm_count = 0
     accumulated_while_running = 0
-    silence_ms = 0
     elapsed_ms.value = 0
     challenge.value = {
       note,
@@ -201,7 +182,6 @@ export function use_game_session() {
     fail_count,
     register_id,
     set_register,
-    set_hearing,
     start_session,
     stop_session,
     pause,

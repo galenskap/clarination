@@ -44,7 +44,7 @@ def holes(*names: str) -> set[str]:
 
 
 def apply_brand_colors(svg: str) -> str:
-    """Couleurs Clarination (aplats, sans noir/blanc purs)."""
+    """Couleurs clarina (aplats, sans noir/blanc purs)."""
     replacements = [
         ("fill:#000000", "fill:#5d0045"),
         ("stroke:#000000", "stroke:#5d0045"),

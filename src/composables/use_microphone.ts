@@ -7,7 +7,7 @@ export type MicDevice = {
   label: string
 }
 
-const STORAGE_KEY = 'clarination.mic_device_id'
+const STORAGE_KEY = 'clarina.mic_device_id'
 
 const BASE_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   echoCancellation: false,
@@ -143,7 +143,7 @@ export function use_microphone() {
       status.value = 'denied'
       error_message.value =
         error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Accès au micro refusé. Active-le pour utiliser Clarination.'
+          ? 'Accès au micro refusé. Active-le pour utiliser clarina.'
           : 'Impossible d’accéder au micro.'
       return null
     }

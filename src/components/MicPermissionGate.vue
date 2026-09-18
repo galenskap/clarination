@@ -20,7 +20,7 @@ defineEmits<{
     <div class="mic-gate__card">
       <h2>Micro requis</h2>
       <p>
-        Clarination a besoin d'accéder à ton micro pour écouter la hauteur de tes notes.
+        clarina a besoin d'accéder à ton micro pour écouter la hauteur de tes notes.
       </p>
       <p v-if="error_message" class="mic-gate__error">{{ error_message }}</p>
       <MicSourceSelect

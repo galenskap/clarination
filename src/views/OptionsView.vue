@@ -32,7 +32,7 @@ function go_home() {
     <div class="options__body app-body">
       <TimeStepper
         label="Doigté"
-        description="Délai sans son avant d’afficher le doigté de la note."
+        description="Délai avant d’afficher le doigté de la note."
         :value="options.hint_seconds.value"
         :min="MIN_HINT_SECONDS"
         :max="MAX_HINT_SECONDS"

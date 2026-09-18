@@ -7,7 +7,7 @@ export const MAX_HINT_SECONDS = 30
 export const MIN_FAIL_SECONDS = 3
 export const MAX_FAIL_SECONDS = 60
 
-const STORAGE_KEY = 'clarination.game_options'
+const STORAGE_KEY = 'clarina.game_options'
 
 const hint_seconds = ref(DEFAULT_HINT_SECONDS)
 const fail_seconds = ref(DEFAULT_FAIL_SECONDS)

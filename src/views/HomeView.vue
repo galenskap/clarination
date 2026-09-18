@@ -27,7 +27,7 @@ import HomeTile from '@/components/HomeTile.vue'
     </div>
 
     <header class="home__brand">
-      <h1 class="home__title">Clarination</h1>
+      <h1 class="home__title">clarina</h1>
     </header>
 
     <nav class="home__tiles" aria-label="Jeux et outils">
