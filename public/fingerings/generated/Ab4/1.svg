@@ -304,12 +304,13 @@
          id="path3806" />
     </g>
   </g>
-<g id="layer-gis" style="display:inline">
-    <path
-       style="fill:#5d0045;fill-opacity:1;stroke:#5d0045;stroke-width:2.00041652;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;display:inline"
-       d="m 345.94624,831.20531 c -13.23636,9.07752 -0.0821,24.94155 -3.55464,21.59328 -12.02319,-5.48054 -25.10117,-12.3575 -23.05354,-17.86925 2.04765,-5.51175 9.49517,-7.30692 26.60818,-3.72403 z"
-       id="path4339"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cczc" />
+<g id="layer-gis1" style="display:inline">
+    <ellipse
+       cx="347.69196"
+       cy="115.99107"
+       rx="10"
+       ry="10.5"
+       id="path-gis1"
+       style="fill:#5d0045;stroke:#5d0045;stroke-width:1.52;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;display:inline" />
   </g>
 </svg>

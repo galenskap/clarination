@@ -33,7 +33,8 @@ REG = "register key"
 A_KEY = "a1"
 BB_KEY = "ais1"
 CS = "cis1"  # do♯ / sol♯, auriculaire gauche
-GS = "gis"  # sol♯ / la♭ (auriculaire ; le template n’a pas de calque « sol♯ de gorge » distinct)
+GS = "gis"  # sol♯ / mi♭, auriculaire droit (chalumeau Ab, clairon Eb)
+THROAT_GS = "gis1"  # sol♯ de gorge (index gauche, à côté de la clé de la)
 EB_SLIVER = "dis"  # clé sliver mi♭ entre L2 et L3
 SIDE4 = "additional_right_1"  # 4e clé latérale (mi♭ / si♭)
 B_SLIVER = "ais"  # sliver si / fa♯ main droite
@@ -194,7 +195,7 @@ FINGERINGS: dict[str, list[set[str]]] = {
     "F#4": [holes(L1)],  # pouce levé
     # Notes de gorge
     "G4": [holes()],  # sol à vide
-    "Ab4": [holes(GS)],
+    "Ab4": [holes(THROAT_GS)],
     "A4": [holes(A_KEY)],
     "Bb4": [holes(REG, A_KEY), holes(BB_KEY)],
     # Clairon = chalumeau + clé de douzième (pouce reste bouché)
@@ -214,12 +215,12 @@ FINGERINGS: dict[str, list[set[str]]] = {
     "C6": [holes(T, REG)],
     # Suraigu (index gauche levé = évent)
     "C#6": [holes(T, L2, L3, R1, R2, REG)],
-    "D6": [holes(T, L2, L3, R1, GS, REG)],
-    "Eb6": [holes(T, L2, L3, R1, B_SLIVER, GS, REG)],
-    "E6": [holes(T, L2, L3, GS, REG)],
-    "F6": [holes(T, L2, L3, CS, GS, REG)],
-    "F#6": [holes(T, L2, GS, REG)],
-    "G6": [holes(T, L2, R1, R2, GS, REG)],
+    "D6": [holes(T, L2, L3, R1, THROAT_GS, REG)],
+    "Eb6": [holes(T, L2, L3, R1, B_SLIVER, THROAT_GS, REG)],
+    "E6": [holes(T, L2, L3, THROAT_GS, REG)],
+    "F6": [holes(T, L2, L3, CS, THROAT_GS, REG)],
+    "F#6": [holes(T, L2, THROAT_GS, REG)],
+    "G6": [holes(T, L2, R1, R2, THROAT_GS, REG)],
 }
 
 

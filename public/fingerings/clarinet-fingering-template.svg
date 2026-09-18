@@ -385,12 +385,20 @@
      id="g4337"
      inkscape:label="gis"
      style="display:none">
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:2.00041652;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;display:inline"
-       d="m 345.94624,831.20531 c -13.23636,9.07752 -0.0821,24.94155 -3.55464,21.59328 -12.02319,-5.48054 -25.10117,-12.3575 -23.05354,-17.86925 2.04765,-5.51175 9.49517,-7.30692 26.60818,-3.72403 z"
+    <clipPath
+       id="clip-gis-paddle">
+      <path
+         d="m 337.13785,831.20531 c 18.28208,4.43396 16.72917,16.42816 16.35078,34.38264 -0.3784,17.95448 2.35778,76.19459 0.33678,76.19459 -2.02098,0 -4.60647,-60.28235 -3.68795,-78.37333 0.40387,-7.95448 -2.91319,-2.50924 -18.83148,-7.95336 -35.70939,-12.21276 -48.16276,-19.12534 -46.24696,-24.63709 1.91582,-5.51175 15.51469,-8.48137 52.07883,0.38655 z"
+         id="path-gis-clip" />
+    </clipPath>
+    <ellipse
+       cx="318"
+       cy="834"
+       rx="40"
+       ry="13.5"
        id="path4339"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cczc" />
+       clip-path="url(#clip-gis-paddle)"
+       style="fill:#000000;fill-opacity:1;stroke:none;display:inline" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -556,6 +564,19 @@
        style="fill:#000000;stroke:#000000;stroke-width:1.57996881;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;display:inline"
        d="m 395.9182,163.62299 c -1.52925,20.125 5.68847,52.8712 10.79057,50.40349 5.10209,-2.4677 7.36181,-38.19576 2.04785,-57.64935 -6.45663,-17.60186 -11.47989,-10.55927 -12.83842,7.24586 z"
        id="path3806-7" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer25"
+     inkscape:label="gis1"
+     style="display:none">
+    <ellipse
+       cx="347.69196"
+       cy="115.99107"
+       rx="10"
+       ry="10.5"
+       id="path-gis1"
+       style="fill:#000000;stroke:#000000;stroke-width:1.52;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;display:inline" />
   </g>
   <g
      inkscape:groupmode="layer"
