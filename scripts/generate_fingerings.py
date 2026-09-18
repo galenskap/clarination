@@ -125,15 +125,138 @@ def resolve_uses(content: str, elements: dict[str, str], depth: int = 0) -> str:
                 )
             else:
                 cloned = cloned.replace(" ", f' transform="{transform.group(1)}" ', 1)
-        # Forcer remplissage visible (clé/trou enfoncé)
-        if "fill:" in cloned or "fill=" in cloned:
-            cloned = re.sub(r"fill:#[0-9a-fA-F]{3,8}", "fill:#5d0045", cloned)
-            cloned = re.sub(r'fill="[^"]*"', 'fill="#5d0045"', cloned)
-        else:
-            cloned = cloned.replace("<path", '<path style="fill:#5d0045;stroke:#5d0045"', 1)
+        # Aplat plein (pas de forme intérieure ni de contour)
+        cloned = force_solid_press(cloned)
         return cloned
 
     return re.sub(r"<use\b[^>]*?/?>", repl, content)
+
+
+def force_solid_press(content: str) -> str:
+    """Remplit entièrement la forme active, sans contour ni anneau intérieur."""
+    content = re.sub(r"fill:#[0-9a-fA-F]{3,8}", "fill:#5d0045", content)
+    content = re.sub(r"fill:none", "fill:#5d0045", content)
+    content = re.sub(r'fill="[^"]*"', 'fill="#5d0045"', content)
+    content = re.sub(r"stroke:#[0-9a-fA-F]{3,8}", "stroke:none", content)
+    content = re.sub(r"stroke:none", "stroke:none", content)  # no-op keep
+    content = re.sub(r'stroke="[^"]*"', 'stroke="none"', content)
+    content = re.sub(r"stroke-width:[^;\"']*;?", "", content)
+    if "fill:#5d0045" not in content and 'fill="#5d0045"' not in content:
+        content = re.sub(
+            r"<(path|circle|ellipse|rect)\b",
+            r'<\1 style="fill:#5d0045;stroke:none"',
+            content,
+            count=1,
+        )
+    return content
+
+
+# Trous uniquement : peints dans le base (aplats solides, suivent les <use>).
+# Les clés passent par les calques d'overlay du template (transforms déjà
+# synchronisés avec les déplacements du base).
+BASE_KEY_ELEMENTS: dict[str, tuple[str, ...]] = {
+    T: ("use3839",),
+    L1: ("path3769",),
+    L2: ("use3771",),
+    L3: ("use3773",),
+    R1: ("use3775",),
+    R2: ("use3777",),
+    R3: ("use3779",),
+}
+
+HOLE_LAYERS = frozenset()
+
+
+def paint_base_keys(base_inner: str, active: set[str], elements: dict[str, str]) -> str:
+    """Colore dans le base les clés actives (conserve les transforms de groupe).
+
+    Pour un <use>, l'aplat est injecté comme frère immédiat avec seulement les
+    transforms de la chaîne <use> (pas les ancêtres) : les reconstruire en fin
+    de calque décale le rendu une fois les clés déplacées dans le template.
+    """
+    ids_to_paint: set[str] = set()
+    for label in active:
+        if label in HOLE_LAYERS:
+            continue
+        for eid in BASE_KEY_ELEMENTS.get(label, ()):
+            ids_to_paint.add(eid)
+
+    if not ids_to_paint:
+        return base_inner
+
+    # Cibles de <use> : si on les colorie, les autres use changeraient aussi
+    href_targets: set[str] = set()
+    for m in re.finditer(r'<(?:use)\b[^>]*(?:xlink:)?href="#([^"]+)"[^>]*/?>', base_inner):
+        href_targets.add(m.group(1))
+
+    # Dupliquer les paths partagés avant de les colorier
+    for eid in list(ids_to_paint):
+        if eid not in href_targets:
+            continue
+        el = re.search(rf'<(?:path|ellipse)\b[^>]*\bid="{re.escape(eid)}"[^>]*/?>', base_inner, re.S)
+        if not el:
+            el = re.search(rf'<(?:path|ellipse)\b(?=[^>]*\bid="{re.escape(eid)}")[^>]*/?>', base_inner, re.S)
+        if not el:
+            continue
+        clone_id = f"{eid}-outline"
+        clone = re.sub(r'\bid="[^"]*"', f'id="{clone_id}"', el.group(0), count=1)
+        # Clone crème AVANT l'original pour que l'aplat (original) reste au-dessus
+        base_inner = base_inner[: el.start()] + clone + "\n" + base_inner[el.start() :]
+        base_inner = re.sub(
+            rf'((?:xlink:)?href=)"#{re.escape(eid)}"',
+            rf'\1"#{clone_id}"',
+            base_inner,
+        )
+        elements[clone_id] = clone
+
+    def paint_element(tag: str) -> str:
+        eid_m = re.search(r'\bid="([^"]+)"', tag)
+        if not eid_m or eid_m.group(1) not in ids_to_paint:
+            return tag
+        eid = eid_m.group(1)
+
+        if tag.strip().startswith("<use"):
+            href = re.search(r'(?:xlink:)?href="#([^"]+)"', tag)
+            use_tr = re.search(r'\btransform="([^"]*)"', tag)
+            chain: list[str] = []
+            cur_tr = use_tr.group(1) if use_tr else ""
+            cur_id = href.group(1) if href else None
+            depth = 0
+            while cur_id and depth < 6:
+                live = re.search(
+                    rf'<(?:path|use|ellipse)\b[^>]*\bid="{re.escape(cur_id)}"[^>]*/?>',
+                    base_inner,
+                    re.S,
+                )
+                target = live.group(0) if live else elements.get(cur_id)
+                if not target:
+                    break
+                if target.strip().startswith("<use"):
+                    chain.append(cur_tr)
+                    href2 = re.search(r'(?:xlink:)?href="#([^"]+)"', target)
+                    tr2 = re.search(r'\btransform="([^"]*)"', target)
+                    cur_tr = tr2.group(1) if tr2 else ""
+                    cur_id = href2.group(1) if href2 else None
+                    depth += 1
+                else:
+                    solid = force_solid_press(
+                        re.sub(r'\bid="[^"]*"', f'id="{eid}-pressed-src"', target, count=1)
+                    )
+                    nested = solid
+                    for tr in reversed(chain + [cur_tr]):
+                        if tr:
+                            nested = f'<g transform="{tr}">{nested}</g>'
+                    # Frère du <use> → mêmes <g> parents, pas de parent_tr reconstruit
+                    return f"{tag}\n{nested}"
+            return tag
+
+        return force_solid_press(tag)
+
+    return re.sub(
+        r"<(?:path|use|ellipse|circle)\b[^>]*?/?>",
+        lambda m: paint_element(m.group(0)),
+        base_inner,
+    )
 
 
 def build_svg(preamble: str, layers: dict[str, str], active: set[str], elements: dict[str, str]) -> str:
@@ -146,10 +269,7 @@ def build_svg(preamble: str, layers: dict[str, str], active: set[str], elements:
             continue
         content = layers[label]
         if label != "Base layer":
-            content = resolve_uses(content, elements)
-            # Forcer les fills des calques actifs en prune
-            content = re.sub(r"fill:#[0-9a-fA-F]{3,8}", "fill:#5d0045", content)
-            content = re.sub(r"stroke:#[0-9a-fA-F]{3,8}", "stroke:#5d0045", content)
+            content = force_solid_press(resolve_uses(content, elements))
         chunks.append(
             f'<g inkscape:groupmode="layer" inkscape:label="{label}" '
             f'style="display:inline" id="layer-{label.replace(" ", "_")}">\n'
@@ -258,16 +378,21 @@ def main() -> None:
         folder.mkdir(parents=True, exist_ok=True)
         paths: list[str] = []
         for i, active in enumerate(variants[:2], start=1):
-            # Assembler
             parts = [preamble]
             for label, inner in layers.items():
-                show = label == "Base layer" or label in active
-                if not show:
+                if label == "Base layer":
+                    content = paint_base_keys(inner, active, elements)
+                    parts.append(
+                        f'<g id="layer-Base_layer" style="display:inline">{content}</g>\n'
+                    )
                     continue
-                content = inner if label == "Base layer" else resolve_uses(inner, elements)
-                if label != "Base layer":
-                    content = re.sub(r"fill:#[0-9a-fA-F]{3,8}", "fill:#5d0045", content)
-                    content = re.sub(r'style="display:none"', 'style="display:inline"', content)
+                # Trous : calques d'overlay. Clés déjà peintes dans le base : ignorer.
+                if label in BASE_KEY_ELEMENTS:
+                    continue
+                if label not in active:
+                    continue
+                content = force_solid_press(resolve_uses(inner, elements))
+                content = re.sub(r'style="display:none"', 'style="display:inline"', content)
                 parts.append(
                     f'<g id="layer-{label.replace(" ", "_")}" style="display:inline">'
                     f"{content}</g>\n"
