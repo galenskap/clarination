@@ -86,7 +86,8 @@ function on_input(event: Event) {
   justify-content: space-between;
   gap: var(--space-md);
   min-height: 0;
-  padding: var(--space-lg);
+  padding: clamp(1.25rem, 5.5vh, 2rem) clamp(0.85rem, 4vh, 1.6rem)
+    clamp(0.85rem, 4vh, 1.6rem);
   background: var(--color-sun);
   color: var(--color-plum);
   border-radius: var(--radius-asymmetric);

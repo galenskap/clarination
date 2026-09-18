@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import StaffSvg from '@/components/StaffSvg.vue'
 import FingeringPanel from '@/components/FingeringPanel.vue'
+import NoteNamePanel from '@/components/NoteNamePanel.vue'
 import SquareIconButton from '@/components/SquareIconButton.vue'
 import MicPermissionGate from '@/components/MicPermissionGate.vue'
 import MicSourceSelect from '@/components/MicSourceSelect.vue'
@@ -298,6 +299,11 @@ onUnmounted(() => {
             v-if="game.challenge.value"
             :note_id="game.challenge.value.note.note_id"
             :visible="game.show_fingerings.value"
+          />
+          <NoteNamePanel
+            v-if="game.challenge.value"
+            :note_id="game.challenge.value.note.note_id"
+            :visible="game.show_note_name.value"
           />
         </section>
       </div>

@@ -119,3 +119,28 @@ export function staff_steps_from_b4(note: MusicalNote): number {
 export function display_label(note: MusicalNote): string {
   return note.note_id
 }
+
+const FRENCH_LETTER: Record<NoteLetter, string> = {
+  C: 'Do',
+  'C#': 'Do♯',
+  D: 'Ré',
+  Eb: 'Mi♭',
+  E: 'Mi',
+  F: 'Fa',
+  'F#': 'Fa♯',
+  G: 'Sol',
+  Ab: 'La♭',
+  A: 'La',
+  Bb: 'Si♭',
+  B: 'Si',
+}
+
+/** Libellé américain (notation scientifique du projet), ex. F#5. */
+export function american_label(note: MusicalNote): string {
+  return note.note_id
+}
+
+/** Libellé français (solfège + octave scientifique), ex. Fa♯5. */
+export function french_label(note: MusicalNote): string {
+  return `${FRENCH_LETTER[note.letter]}${note.octave}`
+}

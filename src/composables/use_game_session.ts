@@ -44,8 +44,15 @@ export function use_game_session() {
   const challenge = ref<ActiveChallenge | null>(null)
   const feedback = ref<TrialFeedback | null>(null)
   const show_fingerings = ref(false)
+  const show_note_name = ref(false)
   const is_paused = ref(false)
   const elapsed_ms = ref(0)
+
+  function reset_hints() {
+    const mode = options.fingering_hint_mode.value
+    show_fingerings.value = mode === 'always'
+    show_note_name.value = mode === 'note_name'
+  }
 
   let confirm_count = 0
   let raf_id = 0
@@ -74,7 +81,7 @@ export function use_game_session() {
   function next_challenge() {
     clear_feedback_timeout()
     feedback.value = null
-    show_fingerings.value = false
+    reset_hints()
     confirm_count = 0
     accumulated_while_running = 0
     elapsed_ms.value = 0
@@ -136,11 +143,13 @@ export function use_game_session() {
         accumulated_while_running += delta
         elapsed_ms.value = accumulated_while_running
 
-        /* Doigté puis note perdue : durée totale d’affichage. */
-        const hint_ms = options.hint_seconds.value * 1000
+        /* Aide (doigté différé) puis note perdue. */
         const fail_ms = options.fail_seconds.value * 1000
 
-        if (elapsed_ms.value >= hint_ms) {
+        if (
+          options.fingering_hint_mode.value === 'delayed' &&
+          elapsed_ms.value >= options.hint_seconds.value * 1000
+        ) {
           show_fingerings.value = true
         }
 
@@ -170,6 +179,7 @@ export function use_game_session() {
     feedback.value = null
     challenge.value = null
     show_fingerings.value = false
+    show_note_name.value = false
   }
 
   function on_pitch(
@@ -205,7 +215,7 @@ export function use_game_session() {
     if (!note) return
     clear_feedback_timeout()
     feedback.value = null
-    show_fingerings.value = false
+    reset_hints()
     confirm_count = 0
     accumulated_while_running = 0
     elapsed_ms.value = 0
@@ -222,6 +232,7 @@ export function use_game_session() {
     feedback,
     is_resolving,
     show_fingerings,
+    show_note_name,
     is_paused,
     elapsed_ms,
     success_count,
