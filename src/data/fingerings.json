@@ -1,0 +1,211 @@
+{
+  "E3": {
+    "variants": [
+      "/fingerings/generated/E3/1.svg",
+      "/fingerings/generated/E3/2.svg"
+    ]
+  },
+  "F3": {
+    "variants": [
+      "/fingerings/generated/F3/1.svg",
+      "/fingerings/generated/F3/2.svg"
+    ]
+  },
+  "F#3": {
+    "variants": [
+      "/fingerings/generated/Fs3/1.svg",
+      "/fingerings/generated/Fs3/2.svg"
+    ]
+  },
+  "G3": {
+    "variants": [
+      "/fingerings/generated/G3/1.svg"
+    ]
+  },
+  "Ab3": {
+    "variants": [
+      "/fingerings/generated/Ab3/1.svg"
+    ]
+  },
+  "A3": {
+    "variants": [
+      "/fingerings/generated/A3/1.svg"
+    ]
+  },
+  "Bb3": {
+    "variants": [
+      "/fingerings/generated/Bb3/1.svg"
+    ]
+  },
+  "B3": {
+    "variants": [
+      "/fingerings/generated/B3/1.svg"
+    ]
+  },
+  "C4": {
+    "variants": [
+      "/fingerings/generated/C4/1.svg"
+    ]
+  },
+  "C#4": {
+    "variants": [
+      "/fingerings/generated/Cs4/1.svg"
+    ]
+  },
+  "D4": {
+    "variants": [
+      "/fingerings/generated/D4/1.svg"
+    ]
+  },
+  "Eb4": {
+    "variants": [
+      "/fingerings/generated/Eb4/1.svg",
+      "/fingerings/generated/Eb4/2.svg"
+    ]
+  },
+  "E4": {
+    "variants": [
+      "/fingerings/generated/E4/1.svg"
+    ]
+  },
+  "F4": {
+    "variants": [
+      "/fingerings/generated/F4/1.svg"
+    ]
+  },
+  "F#4": {
+    "variants": [
+      "/fingerings/generated/Fs4/1.svg"
+    ]
+  },
+  "G4": {
+    "variants": [
+      "/fingerings/generated/G4/1.svg"
+    ]
+  },
+  "Ab4": {
+    "variants": [
+      "/fingerings/generated/Ab4/1.svg"
+    ]
+  },
+  "A4": {
+    "variants": [
+      "/fingerings/generated/A4/1.svg"
+    ]
+  },
+  "Bb4": {
+    "variants": [
+      "/fingerings/generated/Bb4/1.svg",
+      "/fingerings/generated/Bb4/2.svg"
+    ]
+  },
+  "B4": {
+    "variants": [
+      "/fingerings/generated/B4/1.svg",
+      "/fingerings/generated/B4/2.svg"
+    ]
+  },
+  "C5": {
+    "variants": [
+      "/fingerings/generated/C5/1.svg",
+      "/fingerings/generated/C5/2.svg"
+    ]
+  },
+  "C#5": {
+    "variants": [
+      "/fingerings/generated/Cs5/1.svg",
+      "/fingerings/generated/Cs5/2.svg"
+    ]
+  },
+  "D5": {
+    "variants": [
+      "/fingerings/generated/D5/1.svg"
+    ]
+  },
+  "Eb5": {
+    "variants": [
+      "/fingerings/generated/Eb5/1.svg"
+    ]
+  },
+  "E5": {
+    "variants": [
+      "/fingerings/generated/E5/1.svg"
+    ]
+  },
+  "F5": {
+    "variants": [
+      "/fingerings/generated/F5/1.svg"
+    ]
+  },
+  "F#5": {
+    "variants": [
+      "/fingerings/generated/Fs5/1.svg"
+    ]
+  },
+  "G5": {
+    "variants": [
+      "/fingerings/generated/G5/1.svg"
+    ]
+  },
+  "Ab5": {
+    "variants": [
+      "/fingerings/generated/Ab5/1.svg"
+    ]
+  },
+  "A5": {
+    "variants": [
+      "/fingerings/generated/A5/1.svg"
+    ]
+  },
+  "Bb5": {
+    "variants": [
+      "/fingerings/generated/Bb5/1.svg",
+      "/fingerings/generated/Bb5/2.svg"
+    ]
+  },
+  "B5": {
+    "variants": [
+      "/fingerings/generated/B5/1.svg"
+    ]
+  },
+  "C6": {
+    "variants": [
+      "/fingerings/generated/C6/1.svg"
+    ]
+  },
+  "C#6": {
+    "variants": [
+      "/fingerings/generated/Cs6/1.svg"
+    ]
+  },
+  "D6": {
+    "variants": [
+      "/fingerings/generated/D6/1.svg"
+    ]
+  },
+  "Eb6": {
+    "variants": [
+      "/fingerings/generated/Eb6/1.svg"
+    ]
+  },
+  "E6": {
+    "variants": [
+      "/fingerings/generated/E6/1.svg"
+    ]
+  },
+  "F6": {
+    "variants": [
+      "/fingerings/generated/F6/1.svg"
+    ]
+  },
+  "F#6": {
+    "variants": [
+      "/fingerings/generated/Fs6/1.svg"
+    ]
+  },
+  "G6": {
+    "variants": [
+      "/fingerings/generated/G6/1.svg"
+    ]
+  }
+}

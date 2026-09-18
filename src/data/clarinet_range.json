@@ -1,0 +1,10 @@
+{
+  "instrument": "clarinet_bb",
+  "clef": "treble",
+  "a4_hz": 440,
+  "midi_min": 52,
+  "midi_max": 96,
+  "note_min": "E3",
+  "note_max": "C7",
+  "description": "Registre écrit clarinette Sib (du mi grave au do suraigu)"
+}
