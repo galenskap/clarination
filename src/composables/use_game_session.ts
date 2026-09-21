@@ -12,6 +12,10 @@ import {
   type RegisterId,
 } from '@/domain/registers'
 import { use_game_options } from '@/composables/use_game_options'
+import {
+  summarize_trials,
+  type SessionSummary,
+} from '@/domain/session_stats'
 
 export interface GameTrial {
   note_id: string
@@ -47,6 +51,9 @@ export function use_game_session() {
   const show_note_name = ref(false)
   const is_paused = ref(false)
   const elapsed_ms = ref(0)
+  /** Temps de jeu hors pause (session entière). */
+  const played_ms = ref(0)
+  const started_at = ref<number | null>(null)
 
   function reset_hints() {
     const mode = options.fingering_hint_mode.value
@@ -58,6 +65,7 @@ export function use_game_session() {
   let raf_id = 0
   let last_tick = 0
   let accumulated_while_running = 0
+  let session_played_ms = 0
   let feedback_timeout_id = 0
 
   const success_count = computed(() => trials.value.filter((t) => t.success).length)
@@ -130,6 +138,9 @@ export function use_game_session() {
     feedback.value = null
     trials.value = []
     is_paused.value = false
+    session_played_ms = 0
+    played_ms.value = 0
+    started_at.value = Date.now()
     next_challenge()
     start_clock()
   }
@@ -138,23 +149,28 @@ export function use_game_session() {
     cancelAnimationFrame(raf_id)
     last_tick = performance.now()
     const loop = (now: number) => {
-      if (!is_paused.value && challenge.value && !feedback.value) {
-        const delta = now - last_tick
-        accumulated_while_running += delta
-        elapsed_ms.value = accumulated_while_running
+      const delta = now - last_tick
+      if (!is_paused.value) {
+        session_played_ms += delta
+        played_ms.value = Math.round(session_played_ms)
 
-        /* Aide (doigté différé) puis note perdue. */
-        const fail_ms = options.fail_seconds.value * 1000
+        if (challenge.value && !feedback.value) {
+          accumulated_while_running += delta
+          elapsed_ms.value = accumulated_while_running
 
-        if (
-          options.fingering_hint_mode.value === 'delayed' &&
-          elapsed_ms.value >= options.hint_seconds.value * 1000
-        ) {
-          show_fingerings.value = true
-        }
+          /* Aide (doigté différé) puis note perdue. */
+          const fail_ms = options.fail_seconds.value * 1000
 
-        if (elapsed_ms.value >= fail_ms) {
-          resolve_trial(false, null)
+          if (
+            options.fingering_hint_mode.value === 'delayed' &&
+            elapsed_ms.value >= options.hint_seconds.value * 1000
+          ) {
+            show_fingerings.value = true
+          }
+
+          if (elapsed_ms.value >= fail_ms) {
+            resolve_trial(false, null)
+          }
         }
       }
       last_tick = now
@@ -180,6 +196,11 @@ export function use_game_session() {
     challenge.value = null
     show_fingerings.value = false
     show_note_name.value = false
+  }
+
+  /** Agrège les essais de la session en cours sans les vider. */
+  function summarize_session(): SessionSummary {
+    return summarize_trials(trials.value, played_ms.value)
   }
 
   function on_pitch(
@@ -235,12 +256,15 @@ export function use_game_session() {
     show_note_name,
     is_paused,
     elapsed_ms,
+    played_ms,
+    started_at,
     success_count,
     fail_count,
     register_id,
     set_register,
     start_session,
     stop_session,
+    summarize_session,
     pause,
     resume,
     on_pitch,

@@ -9,12 +9,15 @@ import MicPermissionGate from '@/components/MicPermissionGate.vue'
 import MicSourceSelect from '@/components/MicSourceSelect.vue'
 import RegisterSelect from '@/components/RegisterSelect.vue'
 import MicLevelMeter from '@/components/MicLevelMeter.vue'
+import SessionSummaryDialog from '@/components/SessionSummaryDialog.vue'
 import { use_microphone } from '@/composables/use_microphone'
 import { use_pitch_detector } from '@/composables/use_pitch_detector'
 import { use_game_session } from '@/composables/use_game_session'
 import { use_game_sfx } from '@/composables/use_game_sfx'
+import { use_game_stats } from '@/composables/use_game_stats'
 import { cents_to_target, note_proximity, type NoteProximity } from '@/domain/pitch_math'
 import { parse_register_id, type RegisterId } from '@/domain/registers'
+import type { SessionSummary } from '@/domain/session_stats'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,12 +25,18 @@ const mic = use_microphone()
 const pitch = use_pitch_detector(mic.stream)
 const game = use_game_session()
 const sfx = use_game_sfx()
+const stats = use_game_stats()
 const mic_is_hearing = computed(
   () => pitch.level.value >= 0.12 && !pitch.is_paused.value && !game.is_paused.value,
 )
 
 const score_bump = ref<'ok' | 'ko' | null>(null)
 let score_bump_timeout = 0
+
+const summary_open = ref(false)
+const session_summary = ref<SessionSummary | null>(null)
+let session_persisted = false
+let navigating_home = false
 
 const staff_proximity = computed<NoteProximity | null>(() => {
   if (game.feedback.value) return null
@@ -51,6 +60,7 @@ function selected_register(): RegisterId | null {
 function start_game() {
   const register_id = selected_register()
   if (!register_id) return
+  session_persisted = false
   game.start_session(register_id)
 }
 
@@ -88,6 +98,43 @@ function toggle_pause() {
 }
 
 function go_home() {
+  if (summary_open.value || navigating_home) return
+
+  game.pause()
+  pitch.pause()
+
+  const summary = game.summarize_session()
+  if (summary.attempts <= 0) {
+    finish_and_leave()
+    return
+  }
+
+  if (!session_persisted) {
+    stats.record_session({
+      game_id: 'reading',
+      started_at: game.started_at.value ?? Date.now(),
+      register_id: game.register_id.value,
+      summary,
+      trials: game.trials.value.map((trial) => ({
+        note_id: trial.note_id,
+        success: trial.success,
+        reaction_ms: trial.reaction_ms,
+      })),
+    })
+    session_persisted = true
+  }
+
+  session_summary.value = summary
+  summary_open.value = true
+}
+
+function on_summary_close() {
+  summary_open.value = false
+  finish_and_leave()
+}
+
+function finish_and_leave() {
+  navigating_home = true
   game.stop_session()
   pitch.stop()
   void router.push('/')
@@ -160,8 +207,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (score_bump_timeout) window.clearTimeout(score_bump_timeout)
-  game.stop_session()
-  pitch.stop()
+  if (!navigating_home) {
+    game.stop_session()
+    pitch.stop()
+  }
 })
 </script>
 
@@ -308,6 +357,12 @@ onUnmounted(() => {
         </section>
       </div>
     </MicPermissionGate>
+
+    <SessionSummaryDialog
+      :open="summary_open"
+      :summary="session_summary"
+      @close="on_summary_close"
+    />
   </div>
 </template>
 

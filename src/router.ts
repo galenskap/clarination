@@ -4,6 +4,7 @@ import TunerView from '@/views/TunerView.vue'
 import ReadingLevelView from '@/views/ReadingLevelView.vue'
 import ReadingGameView from '@/views/ReadingGameView.vue'
 import OptionsView from '@/views/OptionsView.vue'
+import StatsView from '@/views/StatsView.vue'
 import { is_register_id } from '@/domain/registers'
 
 export const router = createRouter({
@@ -23,6 +24,7 @@ export const router = createRouter({
         }
       },
     },
+    { path: '/stats', name: 'stats', component: StatsView },
     { path: '/options', name: 'options', component: OptionsView },
   ],
 })
