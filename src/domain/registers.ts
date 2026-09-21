@@ -59,20 +59,20 @@ export const REGISTERS: RegisterDefinition[] = [
     id: 'advanced',
     group: 'level',
     label: 'Avancé',
-    hint: 'Tous les registres confondus',
+    hint: 'Tous registres confondus',
     spans: [SPAN_CHALUMEAU, SPAN_THROAT, SPAN_CLARION, SPAN_ALTISSIMO],
   },
   {
     id: 'chalumeau',
     group: 'register',
-    label: 'Chalumeau complet',
+    label: 'Chalumeau',
     hint: 'E3 à F♯4, avec dièses et bémols',
     spans: [SPAN_CHALUMEAU],
   },
   {
     id: 'throat',
     group: 'register',
-    label: 'Notes de gorge',
+    label: 'Gorge',
     hint: 'G4 à B♭4',
     spans: [SPAN_THROAT],
   },
@@ -101,6 +101,11 @@ const REGISTER_GROUPS: { id: RegisterGroup; label: string }[] = [
 
 export function is_register_id(value: string): value is RegisterId {
   return (REGISTER_IDS as readonly string[]).includes(value)
+}
+
+export function parse_register_id(value: unknown): RegisterId | null {
+  if (typeof value !== 'string' || !is_register_id(value)) return null
+  return value
 }
 
 export function register_of(id: RegisterId): RegisterDefinition {

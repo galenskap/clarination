@@ -26,7 +26,15 @@ export interface ActiveChallenge {
   shown_at: number
 }
 
+export interface TrialFeedback {
+  success: boolean
+  /** Jeton unique pour relancer les animations à chaque essai. */
+  token: number
+}
+
 const CONFIRM_FRAMES = 4
+/** Temps d’affichage du feedback avant la note suivante. */
+const FEEDBACK_MS = 560
 
 export function use_game_session() {
   const options = use_game_options()
@@ -34,19 +42,27 @@ export function use_game_session() {
   const range = computed(() => notes_for_register(register_id.value))
   const trials = ref<GameTrial[]>([])
   const challenge = ref<ActiveChallenge | null>(null)
+  const feedback = ref<TrialFeedback | null>(null)
   const show_fingerings = ref(false)
+  const show_note_name = ref(false)
   const is_paused = ref(false)
   const elapsed_ms = ref(0)
+
+  function reset_hints() {
+    const mode = options.fingering_hint_mode.value
+    show_fingerings.value = mode === 'always'
+    show_note_name.value = mode === 'note_name'
+  }
 
   let confirm_count = 0
   let raf_id = 0
   let last_tick = 0
   let accumulated_while_running = 0
-  let silence_ms = 0
-  let is_hearing = false
+  let feedback_timeout_id = 0
 
   const success_count = computed(() => trials.value.filter((t) => t.success).length)
   const fail_count = computed(() => trials.value.filter((t) => !t.success).length)
+  const is_resolving = computed(() => feedback.value != null)
 
   function pick_random_note(): MusicalNote {
     const pool = range.value
@@ -63,10 +79,11 @@ export function use_game_session() {
   }
 
   function next_challenge() {
-    show_fingerings.value = false
+    clear_feedback_timeout()
+    feedback.value = null
+    reset_hints()
     confirm_count = 0
     accumulated_while_running = 0
-    silence_ms = 0
     elapsed_ms.value = 0
     last_tick = performance.now()
     challenge.value = {
@@ -86,7 +103,31 @@ export function use_game_session() {
     })
   }
 
-  function start_session() {
+  function clear_feedback_timeout() {
+    if (feedback_timeout_id) {
+      window.clearTimeout(feedback_timeout_id)
+      feedback_timeout_id = 0
+    }
+  }
+
+  /** Enregistre l’essai, affiche le feedback, puis passe à la note suivante. */
+  function resolve_trial(success: boolean, reaction_ms: number | null) {
+    if (!challenge.value || feedback.value) return
+    record_trial(success, reaction_ms)
+    confirm_count = 0
+    feedback.value = { success, token: Date.now() }
+    clear_feedback_timeout()
+    feedback_timeout_id = window.setTimeout(() => {
+      feedback_timeout_id = 0
+      feedback.value = null
+      next_challenge()
+    }, FEEDBACK_MS)
+  }
+
+  function start_session(id?: RegisterId) {
+    if (id) register_id.value = id
+    clear_feedback_timeout()
+    feedback.value = null
     trials.value = []
     is_paused.value = false
     next_challenge()
@@ -97,28 +138,23 @@ export function use_game_session() {
     cancelAnimationFrame(raf_id)
     last_tick = performance.now()
     const loop = (now: number) => {
-      if (!is_paused.value && challenge.value) {
+      if (!is_paused.value && challenge.value && !feedback.value) {
         const delta = now - last_tick
         accumulated_while_running += delta
         elapsed_ms.value = accumulated_while_running
 
-        if (is_hearing) {
-          silence_ms = 0
-        } else {
-          silence_ms += delta
-        }
-
-        /* Doigté : après un silence. Note perdue : durée totale d’affichage. */
-        const hint_ms = options.hint_seconds.value * 1000
+        /* Aide (doigté différé) puis note perdue. */
         const fail_ms = options.fail_seconds.value * 1000
 
-        if (silence_ms >= hint_ms) {
+        if (
+          options.fingering_hint_mode.value === 'delayed' &&
+          elapsed_ms.value >= options.hint_seconds.value * 1000
+        ) {
           show_fingerings.value = true
         }
 
         if (elapsed_ms.value >= fail_ms) {
-          record_trial(false, null)
-          next_challenge()
+          resolve_trial(false, null)
         }
       }
       last_tick = now
@@ -139,24 +175,23 @@ export function use_game_session() {
   function stop_session() {
     cancelAnimationFrame(raf_id)
     raf_id = 0
+    clear_feedback_timeout()
+    feedback.value = null
     challenge.value = null
     show_fingerings.value = false
-    is_hearing = false
-    silence_ms = 0
-  }
-
-  function set_hearing(hearing: boolean) {
-    is_hearing = hearing
-    if (hearing) {
-      silence_ms = 0
-    }
+    show_note_name.value = false
   }
 
   function on_pitch(
     frequency_hz: number | null,
     nearest_note_id: string | null,
   ) {
-    if (is_paused.value || !challenge.value || frequency_hz == null) {
+    if (
+      is_paused.value ||
+      !challenge.value ||
+      feedback.value ||
+      frequency_hz == null
+    ) {
       confirm_count = 0
       return
     }
@@ -167,8 +202,7 @@ export function use_game_session() {
     if (nearest_note_id === target.note_id && is_in_tune(cents, IN_TUNE_CENTS)) {
       confirm_count += 1
       if (confirm_count >= CONFIRM_FRAMES) {
-        record_trial(true, Math.round(elapsed_ms.value))
-        next_challenge()
+        resolve_trial(true, Math.round(elapsed_ms.value))
       }
     } else {
       confirm_count = 0
@@ -179,10 +213,11 @@ export function use_game_session() {
   function force_note(note_id: string) {
     const note = parse_note_id(note_id)
     if (!note) return
-    show_fingerings.value = false
+    clear_feedback_timeout()
+    feedback.value = null
+    reset_hints()
     confirm_count = 0
     accumulated_while_running = 0
-    silence_ms = 0
     elapsed_ms.value = 0
     challenge.value = {
       note,
@@ -194,14 +229,16 @@ export function use_game_session() {
   return {
     trials,
     challenge,
+    feedback,
+    is_resolving,
     show_fingerings,
+    show_note_name,
     is_paused,
     elapsed_ms,
     success_count,
     fail_count,
     register_id,
     set_register,
-    set_hearing,
     start_session,
     stop_session,
     pause,

@@ -1,4 +1,4 @@
-# Clarination
+# clarina
 
 PWA Vue 3 pour s’exercer à la clarinette (accordeur + lecture de notes).
 
@@ -25,7 +25,7 @@ Secrets GitHub à créer (`Settings → Secrets and variables → Actions`) :
 | `VPS_HOST` | Hôte SSH |
 | `VPS_USER` | Utilisateur SSH |
 | `VPS_SSH_PRIVATE_KEY` | Clé privée SSH (ed25519) |
-| `VPS_PATH` | Racine web distante (ex. `/var/www/clarination`) |
+| `VPS_PATH` | Racine web distante (ex. `/var/www/clarina`) |
 | `VPS_PORT` | Optionnel, port SSH (défaut `22`) |
 | `DEPLOY_URL` | Optionnel, URL HTTPS de contrôle après déploiement |
 

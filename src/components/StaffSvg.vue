@@ -183,7 +183,7 @@ function accidental_symbol(accidental: Accidental): string {
 .staff-svg__accidental {
   font-family: var(--font-family);
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .staff-svg__note--animate {

@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'fonts/nobile/*.woff2', 'fingerings/**/*.svg'],
       manifest: {
-        name: 'Clarination',
-        short_name: 'Clarination',
+        name: 'clarina',
+        short_name: 'clarina',
         description: 'Exercices et jeux pour clarinette',
         theme_color: '#5d0045',
         background_color: '#fbf6e5',
