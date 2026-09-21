@@ -1,6 +1,6 @@
 import type { NoteDuration } from './notes'
 
-export const NOTE_DURATIONS: NoteDuration[] = ['quarter', 'half', 'whole']
+export const NOTE_DURATIONS: NoteDuration[] = ['quarter']
 
 export const DURATION_LABELS: Record<NoteDuration, string> = {
   quarter: 'noire',
