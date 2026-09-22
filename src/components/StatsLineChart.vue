@@ -9,6 +9,8 @@ export interface LineChartPoint {
   label?: string
   /** Date de session affichée sous le point (ex. 21/09). */
   date_label?: string
+  /** Registre / niveau de la session (ex. Débutant). */
+  register_label?: string
 }
 
 const props = defineProps<{
@@ -18,8 +20,8 @@ const props = defineProps<{
 }>()
 
 const width = 360
-const height = 200
-const pad = { top: 16, right: 14, bottom: 54, left: 52 }
+const height = 220
+const pad = { top: 14, right: 12, bottom: 68, left: 52 }
 
 const plot = computed(() => {
   const points = props.points
@@ -27,9 +29,15 @@ const plot = computed(() => {
   if (points.length === 0) {
     return {
       path: '',
-      dots: [] as { cx: number; cy: number; label: string; date_label: string }[],
+      dots: [] as {
+        cx: number
+        cy: number
+        label: string
+        date_label: string
+        register_label: string
+      }[],
       y_ticks: [] as { y: number; label: string }[],
-      x_ticks: [] as { cx: number; label: string }[],
+      x_ticks: [] as { cx: number; date_label: string; register_label: string }[],
     }
   }
 
@@ -58,6 +66,7 @@ const plot = computed(() => {
     cy: y_at(point.y),
     label: point.label ?? `${Math.round(point.y)}`,
     date_label: point.date_label ?? '',
+    register_label: point.register_label ?? '',
   }))
 
   const path = coords
@@ -75,7 +84,7 @@ const plot = computed(() => {
   })
 
   /* Affiche toutes les dates si peu de points, sinon un sous-échantillon lisible. */
-  const max_x_labels = 6
+  const max_x_labels = 5
   const step =
     points.length <= max_x_labels
       ? 1
@@ -90,9 +99,10 @@ const plot = computed(() => {
     .sort((a, b) => a - b)
     .map((index) => ({
       cx: x_at(index),
-      label: coords[index]?.date_label ?? '',
+      date_label: coords[index]?.date_label ?? '',
+      register_label: coords[index]?.register_label ?? '',
     }))
-    .filter((tick) => tick.label.length > 0)
+    .filter((tick) => tick.date_label.length > 0 || tick.register_label.length > 0)
 
   return { path, dots: coords, y_ticks, x_ticks }
 })
@@ -146,24 +156,39 @@ function format_axis_ms(ms: number): string {
         :cy="dot.cy"
         r="4"
       >
-        <title>{{ dot.date_label ? `${dot.date_label} · ${dot.label}` : dot.label }}</title>
+        <title>
+          {{
+            [dot.date_label, dot.register_label, dot.label]
+              .filter(Boolean)
+              .join(' · ')
+          }}
+        </title>
       </circle>
-      <text
-        v-for="(tick, index) in plot.x_ticks"
-        :key="`xlabel-${index}`"
-        class="line-chart__axis line-chart__axis--x"
-        :x="tick.cx"
-        :y="height - 28"
-        text-anchor="middle"
-      >
-        {{ tick.label }}
-      </text>
+      <g v-for="(tick, index) in plot.x_ticks" :key="`xlabel-${index}`">
+        <text
+          class="line-chart__axis line-chart__axis--x"
+          :x="tick.cx"
+          :y="height - 42"
+          text-anchor="middle"
+        >
+          {{ tick.date_label }}
+        </text>
+        <text
+          v-if="tick.register_label"
+          class="line-chart__axis line-chart__axis--register"
+          :x="tick.cx"
+          :y="height - 28"
+          text-anchor="middle"
+        >
+          {{ tick.register_label }}
+        </text>
+      </g>
       <text
         class="line-chart__axis-title line-chart__axis-title--y"
         :x="14"
-        :y="height / 2 - 8"
+        :y="height / 2 - 16"
         text-anchor="middle"
-        :transform="`rotate(-90 14 ${height / 2 - 8})`"
+        :transform="`rotate(-90 14 ${height / 2 - 16})`"
       >
         {{ y_label ?? 'Temps moyen' }}
       </text>
@@ -209,6 +234,12 @@ function format_axis_ms(ms: number): string {
 
 .line-chart__axis--x {
   font-size: 11px;
+}
+
+.line-chart__axis--register {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--color-plum);
 }
 
 .line-chart__axis-title {

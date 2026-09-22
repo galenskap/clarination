@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import FingeringDialog from '@/components/FingeringDialog.vue'
 import type { SessionSummary } from '@/domain/session_stats'
 import {
   format_duration,
@@ -17,14 +18,33 @@ const emit = defineEmits<{
 }>()
 
 const dialog_el = ref<HTMLDialogElement | null>(null)
+const fingering_note_id = ref<string | null>(null)
+const fingering_open = ref(false)
 
 function close() {
+  fingering_open.value = false
+  fingering_note_id.value = null
   emit('close')
 }
 
 function on_cancel(event: Event) {
   event.preventDefault()
   close()
+}
+
+/** Clic sur le fond (backdrop) : fermer. */
+function on_backdrop_click(event: MouseEvent) {
+  if (event.target === dialog_el.value) close()
+}
+
+function show_fingering(note_id: string) {
+  fingering_note_id.value = note_id
+  fingering_open.value = true
+}
+
+function close_fingering() {
+  fingering_open.value = false
+  fingering_note_id.value = null
 }
 
 watch(
@@ -36,6 +56,10 @@ watch(
       el.showModal()
     } else if (!is_open && el.open) {
       el.close()
+    }
+    if (!is_open) {
+      fingering_open.value = false
+      fingering_note_id.value = null
     }
   },
 )
@@ -57,6 +81,7 @@ onUnmounted(() => {
     class="session-summary"
     aria-labelledby="session-summary-title"
     @cancel="on_cancel"
+    @click="on_backdrop_click"
   >
     <div v-if="summary" class="session-summary__card">
       <h2 id="session-summary-title" class="session-summary__title">
@@ -80,9 +105,12 @@ onUnmounted(() => {
         </dl>
 
         <div class="session-summary__notes">
-          <div
+          <button
             v-if="summary.best_note"
+            type="button"
             class="session-summary__note session-summary__note--best"
+            :aria-label="`Voir le doigté de ${summary.best_note.american}`"
+            @click="show_fingering(summary.best_note.note_id)"
           >
             <h3>Note la + réussie</h3>
             <p class="session-summary__note-name">
@@ -94,11 +122,14 @@ onUnmounted(() => {
               ·
               {{ format_reaction_ms(summary.best_note.avg_reaction_ms) }}
             </p>
-          </div>
+          </button>
 
-          <div
+          <button
             v-if="summary.worst_note"
+            type="button"
             class="session-summary__note session-summary__note--worst"
+            :aria-label="`Voir le doigté de ${summary.worst_note.american}`"
+            @click="show_fingering(summary.worst_note.note_id)"
           >
             <h3>Note la − réussie</h3>
             <p class="session-summary__note-name">
@@ -110,7 +141,7 @@ onUnmounted(() => {
               ·
               {{ format_reaction_ms(summary.worst_note.avg_reaction_ms) }}
             </p>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -119,6 +150,12 @@ onUnmounted(() => {
       </button>
     </div>
   </dialog>
+
+  <FingeringDialog
+    :open="fingering_open"
+    :note_id="fingering_note_id"
+    @close="close_fingering"
+  />
 </template>
 
 <style scoped>
@@ -224,6 +261,13 @@ onUnmounted(() => {
   justify-content: center;
   gap: 0.15rem;
   min-width: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-spatial);
+}
+
+.session-summary__note:active {
+  transform: scale(0.97);
 }
 
 .session-summary__note--best {

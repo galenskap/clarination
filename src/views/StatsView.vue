@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SquareIconButton from '@/components/SquareIconButton.vue'
 import StatsLineChart from '@/components/StatsLineChart.vue'
+import FingeringDialog from '@/components/FingeringDialog.vue'
 import {
   GAME_IDS,
   GAME_LABELS,
@@ -14,10 +15,13 @@ import {
   format_reaction_ms,
   format_success_rate,
 } from '@/domain/session_stats'
+import { is_register_id, register_of } from '@/domain/registers'
 
 const router = useRouter()
 const stats = use_game_stats()
 const active_game = ref<GameId>('reading')
+const fingering_note_id = ref<string | null>(null)
+const fingering_open = ref(false)
 
 const current = computed(() => stats.stats_for(active_game.value))
 const has_data = computed(() => current.value.session_count > 0)
@@ -31,6 +35,11 @@ function format_session_date(started_at: number): string {
   return date_formatter.format(new Date(started_at))
 }
 
+function register_label(register_id: string): string {
+  if (!is_register_id(register_id)) return register_id
+  return register_of(register_id).label
+}
+
 const line_points = computed(() =>
   current.value.sessions
     .filter((session) => session.avg_reaction_ms != null)
@@ -39,6 +48,7 @@ const line_points = computed(() =>
       y: session.avg_reaction_ms as number,
       label: format_reaction_ms(session.avg_reaction_ms),
       date_label: format_session_date(session.started_at),
+      register_label: register_label(session.register_id),
     })),
 )
 
@@ -56,6 +66,16 @@ function go_home() {
 
 function select_game(game_id: GameId) {
   active_game.value = game_id
+}
+
+function show_fingering(note_id: string) {
+  fingering_note_id.value = note_id
+  fingering_open.value = true
+}
+
+function close_fingering() {
+  fingering_open.value = false
+  fingering_note_id.value = null
 }
 </script>
 
@@ -91,83 +111,93 @@ function select_game(game_id: GameId) {
       </p>
 
       <div v-else class="stats__grid">
-        <div class="stats__left">
-          <div class="stats__stat stats__stat--duration">
-            <span class="stats__stat-label">Durée totale</span>
-            <span class="stats__stat-value">{{ format_duration(current.total_duration_ms) }}</span>
-            <span class="stats__stat-hint">toutes parties confondues</span>
-          </div>
+        <div class="stats__stat stats__stat--duration">
+          <span class="stats__stat-label">Durée totale</span>
+          <span class="stats__stat-value">{{ format_duration(current.total_duration_ms) }}</span>
+          <span class="stats__stat-hint">toutes parties confondues</span>
+        </div>
 
-          <div class="stats__rank" aria-label="Notes les plus et moins réussies">
-            <div class="stats__rank-row stats__rank-row--best">
-              <div
-                v-for="(note, index) in best_slots"
-                :key="`best-${index}`"
-                class="stats__rank-item stats__rank-item--best"
-                :class="{ 'stats__rank-item--empty': !note }"
-              >
-                <template v-if="note">
-                  <span class="stats__rank-name">{{ note.american }}</span>
-                  <span class="stats__rank-meta">
-                    {{ format_success_rate(note.success_rate) }}
-                    ·
-                    {{ format_reaction_ms(note.avg_reaction_ms) }}
-                  </span>
-                </template>
-                <span v-else class="stats__rank-placeholder">—</span>
-              </div>
-            </div>
-            <div class="stats__rank-row stats__rank-row--worst">
-              <div
-                v-for="(note, index) in worst_slots"
-                :key="`worst-${index}`"
-                class="stats__rank-item stats__rank-item--worst"
-                :class="{
-                  'stats__rank-item--empty': !note,
-                  'stats__rank-item--bl': index === 0,
-                }"
-              >
-                <template v-if="note">
-                  <span class="stats__rank-name">{{ note.american }}</span>
-                  <span class="stats__rank-meta">
-                    {{ format_success_rate(note.success_rate) }}
-                    ·
-                    {{ format_reaction_ms(note.avg_reaction_ms) }}
-                  </span>
-                </template>
-                <span v-else class="stats__rank-placeholder">—</span>
-              </div>
-            </div>
+        <div class="stats__kpis">
+          <div class="stats__stat stats__stat--attempts">
+            <span class="stats__stat-label">Notes jouées</span>
+            <span class="stats__stat-value">{{ current.total_attempts }}</span>
+          </div>
+          <div class="stats__stat">
+            <span class="stats__stat-label">Parties</span>
+            <span class="stats__stat-value">{{ current.session_count }}</span>
+          </div>
+          <div class="stats__stat stats__stat--rate">
+            <span class="stats__stat-label">Réussite</span>
+            <span class="stats__stat-value">{{ format_success_rate(current.success_rate) }}</span>
           </div>
         </div>
 
-        <div class="stats__right">
-          <div class="stats__kpis">
-            <div class="stats__stat stats__stat--attempts">
-              <span class="stats__stat-label">Notes jouées</span>
-              <span class="stats__stat-value">{{ current.total_attempts }}</span>
-            </div>
-            <div class="stats__stat">
-              <span class="stats__stat-label">Parties</span>
-              <span class="stats__stat-value">{{ current.session_count }}</span>
-            </div>
-            <div class="stats__stat stats__stat--rate">
-              <span class="stats__stat-label">Réussite</span>
-              <span class="stats__stat-value">{{ format_success_rate(current.success_rate) }}</span>
-            </div>
+        <div class="stats__rank" aria-label="Notes les plus et moins réussies">
+          <div class="stats__rank-row stats__rank-row--best">
+            <button
+              v-for="(note, index) in best_slots"
+              :key="`best-${index}`"
+              type="button"
+              class="stats__rank-item stats__rank-item--best"
+              :class="{ 'stats__rank-item--empty': !note }"
+              :disabled="!note"
+              :aria-label="note ? `Voir le doigté de ${note.american}` : undefined"
+              @click="note && show_fingering(note.note_id)"
+            >
+              <template v-if="note">
+                <span class="stats__rank-name">{{ note.american }}</span>
+                <span class="stats__rank-meta">
+                  {{ format_success_rate(note.success_rate) }}
+                  ·
+                  {{ format_reaction_ms(note.avg_reaction_ms) }}
+                </span>
+              </template>
+              <span v-else class="stats__rank-placeholder">—</span>
+            </button>
           </div>
-
-          <section class="stats__chart" aria-label="Temps moyen par note">
-            <h2 class="stats__chart-title">Temps moyen / note</h2>
-            <StatsLineChart
-              :points="line_points"
-              x_label="Sessions"
-              y_label="Temps moyen"
-            />
-          </section>
+          <div class="stats__rank-row stats__rank-row--worst">
+            <button
+              v-for="(note, index) in worst_slots"
+              :key="`worst-${index}`"
+              type="button"
+              class="stats__rank-item stats__rank-item--worst"
+              :class="{
+                'stats__rank-item--empty': !note,
+                'stats__rank-item--bl': index === 0,
+              }"
+              :disabled="!note"
+              :aria-label="note ? `Voir le doigté de ${note.american}` : undefined"
+              @click="note && show_fingering(note.note_id)"
+            >
+              <template v-if="note">
+                <span class="stats__rank-name">{{ note.american }}</span>
+                <span class="stats__rank-meta">
+                  {{ format_success_rate(note.success_rate) }}
+                  ·
+                  {{ format_reaction_ms(note.avg_reaction_ms) }}
+                </span>
+              </template>
+              <span v-else class="stats__rank-placeholder">—</span>
+            </button>
+          </div>
         </div>
+
+        <section class="stats__chart" aria-label="Temps moyen par note">
+          <h2 class="stats__chart-title">Temps moyen / note</h2>
+          <StatsLineChart
+            :points="line_points"
+            x_label="Sessions"
+            y_label="Temps moyen"
+          />
+        </section>
       </div>
     </div>
+
+    <FingeringDialog
+      :open="fingering_open"
+      :note_id="fingering_note_id"
+      @close="close_fingering"
+    />
   </div>
 </template>
 
@@ -240,32 +270,49 @@ function select_game(game_id: GameId) {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-sm);
   align-items: stretch;
 }
 
-.stats__left {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--space-sm);
-  min-width: 0;
-  min-height: 0;
-}
-
-.stats__right {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--space-sm);
-  min-width: 0;
-  min-height: 0;
-}
-
 .stats__kpis {
+  grid-column: 2;
+  grid-row: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
   min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.stats__kpis > .stats__stat {
+  min-height: 100%;
+  height: 100%;
+}
+
+.stats__rank {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-sm);
+  min-width: 0;
+  min-height: 0;
+}
+
+.stats__chart {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-sm);
+  background: color-mix(in srgb, var(--color-sun) 40%, var(--color-cream));
+  border-radius: var(--shape-none);
+  border-bottom-right-radius: var(--shape-xxl);
 }
 
 .stats__stat {
@@ -282,6 +329,8 @@ function select_game(game_id: GameId) {
 }
 
 .stats__stat--duration {
+  grid-column: 1;
+  grid-row: 1;
   background: var(--color-sky);
   color: var(--color-cream);
   border-top-left-radius: var(--shape-xxl);
@@ -311,18 +360,6 @@ function select_game(game_id: GameId) {
   opacity: 0.85;
 }
 
-.stats__chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  min-width: 0;
-  min-height: 0;
-  padding: var(--space-sm);
-  background: color-mix(in srgb, var(--color-sun) 40%, var(--color-cream));
-  border-radius: var(--shape-none);
-  border-bottom-right-radius: var(--shape-xxl);
-}
-
 .stats__chart-title {
   margin: 0;
   flex-shrink: 0;
@@ -334,14 +371,6 @@ function select_game(game_id: GameId) {
 
 .stats__chart :deep(.line-chart) {
   flex: 1;
-  min-height: 0;
-}
-
-.stats__rank {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: var(--space-sm);
-  min-width: 0;
   min-height: 0;
 }
 
@@ -360,9 +389,20 @@ function select_game(game_id: GameId) {
   align-items: center;
   gap: 0.1rem;
   min-width: 0;
+  width: 100%;
   padding: var(--space-sm) var(--space-xs);
   border-radius: var(--shape-none);
   text-align: center;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-spatial);
+}
+
+.stats__rank-item:enabled:active {
+  transform: scale(0.96);
+}
+
+.stats__rank-item:disabled {
+  cursor: default;
 }
 
 .stats__rank-item--best {
