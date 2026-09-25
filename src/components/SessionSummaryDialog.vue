@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import FingeringDialog from '@/components/FingeringDialog.vue'
 import type { SessionSummary } from '@/domain/session_stats'
 import {
@@ -8,10 +8,17 @@ import {
   format_success_rate,
 } from '@/domain/session_stats'
 
-const props = defineProps<{
-  open: boolean
-  summary: SessionSummary | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    summary: SessionSummary | null
+    /** `chord` : libellés accords / fautes, sans doigté. */
+    variant?: 'note' | 'chord'
+  }>(),
+  {
+    variant: 'note',
+  },
+)
 
 const emit = defineEmits<{
   close: []
@@ -20,6 +27,12 @@ const emit = defineEmits<{
 const dialog_el = ref<HTMLDialogElement | null>(null)
 const fingering_note_id = ref<string | null>(null)
 const fingering_open = ref(false)
+const is_chord = computed(() => props.variant === 'chord')
+
+const fail_count = computed(() => {
+  if (!props.summary) return 0
+  return Math.max(0, props.summary.attempts - props.summary.successes)
+})
 
 function close() {
   fingering_open.value = false
@@ -38,6 +51,7 @@ function on_backdrop_click(event: MouseEvent) {
 }
 
 function show_fingering(note_id: string) {
+  if (is_chord.value) return
   fingering_note_id.value = note_id
   fingering_open.value = true
 }
@@ -94,54 +108,86 @@ onUnmounted(() => {
             <dt>Durée de la partie</dt>
             <dd>{{ format_duration(summary.duration_ms) }}</dd>
           </div>
-          <div class="session-summary__stat session-summary__stat--attempts">
-            <dt>Notes jouées</dt>
-            <dd>{{ summary.attempts }}</dd>
-          </div>
-          <div class="session-summary__stat">
-            <dt>Réussite</dt>
-            <dd>{{ format_success_rate(summary.success_rate) }}</dd>
-          </div>
+          <template v-if="is_chord">
+            <div class="session-summary__stat session-summary__stat--attempts">
+              <dt>Accords réussis</dt>
+              <dd>{{ summary.successes }}</dd>
+            </div>
+            <div class="session-summary__stat">
+              <dt>Fautes</dt>
+              <dd>{{ fail_count }}</dd>
+            </div>
+            <div class="session-summary__stat session-summary__stat--rate">
+              <dt>Réussite</dt>
+              <dd>{{ format_success_rate(summary.success_rate) }}</dd>
+            </div>
+          </template>
+          <template v-else>
+            <div class="session-summary__stat session-summary__stat--attempts">
+              <dt>Notes jouées</dt>
+              <dd>{{ summary.attempts }}</dd>
+            </div>
+            <div class="session-summary__stat">
+              <dt>Réussite</dt>
+              <dd>{{ format_success_rate(summary.success_rate) }}</dd>
+            </div>
+          </template>
         </dl>
 
         <div class="session-summary__notes">
-          <button
+          <component
+            :is="is_chord ? 'div' : 'button'"
             v-if="summary.best_note"
             type="button"
             class="session-summary__note session-summary__note--best"
-            :aria-label="`Voir le doigté de ${summary.best_note.american}`"
+            :class="{ 'session-summary__note--static': is_chord }"
+            :aria-label="
+              is_chord
+                ? undefined
+                : `Voir le doigté de ${summary.best_note.american}`
+            "
             @click="show_fingering(summary.best_note.note_id)"
           >
-            <h3>Note la + réussie</h3>
+            <h3>{{ is_chord ? 'Accord le + réussi' : 'Note la + réussie' }}</h3>
             <p class="session-summary__note-name">
               <span>{{ summary.best_note.american }}</span>
-              <span class="session-summary__note-fr">{{ summary.best_note.french }}</span>
+              <span v-if="!is_chord" class="session-summary__note-fr">
+                {{ summary.best_note.french }}
+              </span>
             </p>
             <p class="session-summary__note-meta">
               {{ format_success_rate(summary.best_note.success_rate) }}
               ·
               {{ format_reaction_ms(summary.best_note.avg_reaction_ms) }}
             </p>
-          </button>
+          </component>
 
-          <button
+          <component
+            :is="is_chord ? 'div' : 'button'"
             v-if="summary.worst_note"
             type="button"
             class="session-summary__note session-summary__note--worst"
-            :aria-label="`Voir le doigté de ${summary.worst_note.american}`"
+            :class="{ 'session-summary__note--static': is_chord }"
+            :aria-label="
+              is_chord
+                ? undefined
+                : `Voir le doigté de ${summary.worst_note.american}`
+            "
             @click="show_fingering(summary.worst_note.note_id)"
           >
-            <h3>Note la − réussie</h3>
+            <h3>{{ is_chord ? 'Accord le − réussi' : 'Note la − réussie' }}</h3>
             <p class="session-summary__note-name">
               <span>{{ summary.worst_note.american }}</span>
-              <span class="session-summary__note-fr">{{ summary.worst_note.french }}</span>
+              <span v-if="!is_chord" class="session-summary__note-fr">
+                {{ summary.worst_note.french }}
+              </span>
             </p>
             <p class="session-summary__note-meta">
               {{ format_success_rate(summary.worst_note.success_rate) }}
               ·
               {{ format_reaction_ms(summary.worst_note.avg_reaction_ms) }}
             </p>
-          </button>
+          </component>
         </div>
       </div>
 
@@ -229,6 +275,17 @@ onUnmounted(() => {
   border-bottom-left-radius: var(--shape-sm);
 }
 
+.session-summary__stats:has(.session-summary__stat--rate) .session-summary__stat--attempts {
+  border-bottom-left-radius: var(--shape-none);
+}
+
+.session-summary__stat--rate {
+  grid-column: 1 / -1;
+  background: var(--color-leaf);
+  color: var(--color-cream);
+  border-bottom-left-radius: var(--shape-sm);
+}
+
 .session-summary__stat dt {
   font-size: clamp(0.7rem, 2.6vh, 0.85rem);
   font-weight: var(--font-weight-medium);
@@ -264,9 +321,16 @@ onUnmounted(() => {
   width: 100%;
   cursor: pointer;
   transition: transform var(--duration-fast) var(--ease-spatial);
+  border: none;
+  font: inherit;
+  color: inherit;
 }
 
-.session-summary__note:active {
+.session-summary__note--static {
+  cursor: default;
+}
+
+.session-summary__note:not(.session-summary__note--static):active {
   transform: scale(0.97);
 }
 

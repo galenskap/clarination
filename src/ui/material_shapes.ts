@@ -25,6 +25,12 @@ export const tile_morph = {
     duration: 420,
     easing: 'emphasized',
   },
+  cream: {
+    rest: 'Pill',
+    hover: 'SoftBurst',
+    duration: 420,
+    easing: 'emphasized',
+  },
 } as const
 
 export const button_morph = {

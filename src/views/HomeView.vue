@@ -49,6 +49,19 @@ import HomeTile from '@/components/HomeTile.vue'
         </template>
       </HomeTile>
 
+      <HomeTile label="Harmoniques" to="/harmoniques" accent="cream">
+        <template #icon>
+          <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">
+            <circle cx="14" cy="34" r="5" />
+            <circle cx="26" cy="28" r="5" />
+            <circle cx="38" cy="22" r="5" />
+            <rect x="17" y="10" width="3" height="24" rx="1" />
+            <rect x="29" y="8" width="3" height="20" rx="1" />
+            <rect x="41" y="6" width="3" height="16" rx="1" />
+          </svg>
+        </template>
+      </HomeTile>
+
       <HomeTile label="Stats" to="/stats" accent="sky">
         <template #icon>
           <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">

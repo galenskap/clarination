@@ -3,6 +3,7 @@ import {
   french_label,
   parse_note_id,
 } from '@/domain/notes'
+import { is_chord_symbol } from '@/domain/chords'
 
 export interface SessionTrialInput {
   note_id: string
@@ -33,6 +34,9 @@ export interface SessionSummary {
 }
 
 function note_labels(note_id: string): { american: string; french: string } {
+  if (is_chord_symbol(note_id)) {
+    return { american: note_id, french: note_id }
+  }
   const note = parse_note_id(note_id)
   if (!note) return { american: note_id, french: note_id }
   return { american: american_label(note), french: french_label(note) }

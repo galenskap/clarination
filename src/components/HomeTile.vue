@@ -6,7 +6,7 @@ import { tile_morph } from '@/ui/material_shapes'
 const props = defineProps<{
   label: string
   to: string
-  accent?: 'coral' | 'sun' | 'sky' | 'leaf'
+  accent?: 'coral' | 'sun' | 'sky' | 'leaf' | 'cream'
 }>()
 
 const accent = computed(() => props.accent ?? 'coral')
@@ -63,6 +63,11 @@ const morph = computed(() => tile_morph[accent.value])
 .home-tile--leaf {
   background: var(--color-leaf);
   color: var(--color-on-leaf);
+}
+
+.home-tile--cream {
+  background: var(--color-cream);
+  color: var(--color-plum);
 }
 
 .home-tile__icon {

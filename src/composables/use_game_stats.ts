@@ -1,21 +1,22 @@
 import { computed, ref } from 'vue'
+import { is_chord_symbol } from '@/domain/chords'
 import {
   american_label,
   french_label,
   parse_note_id,
 } from '@/domain/notes'
-import type { RegisterId } from '@/domain/registers'
 import type {
   NotePerformance,
   SessionSummary,
   SessionTrialInput,
 } from '@/domain/session_stats'
 
-export const GAME_IDS = ['reading'] as const
+export const GAME_IDS = ['reading', 'harmoniques'] as const
 export type GameId = (typeof GAME_IDS)[number]
 
 export const GAME_LABELS: Record<GameId, string> = {
   reading: 'Lecture de notes',
+  harmoniques: 'Harmoniques',
 }
 
 const STORAGE_KEY = 'clarina.game_stats'
@@ -28,7 +29,8 @@ export interface StoredSessionRecord {
   attempts: number
   successes: number
   avg_reaction_ms: number | null
-  register_id: RegisterId
+  /** Registre de lecture, ou liste de qualités d’accords (`major,minor,…`). */
+  register_id: string
 }
 
 export interface StoredNoteAggregate {
@@ -192,6 +194,9 @@ function ensure_bucket(game_id: GameId): GameStatsBucket {
 }
 
 function note_labels(note_id: string): { american: string; french: string } {
+  if (is_chord_symbol(note_id)) {
+    return { american: note_id, french: note_id }
+  }
   const note = parse_note_id(note_id)
   if (!note) return { american: note_id, french: note_id }
   return { american: american_label(note), french: french_label(note) }
@@ -303,7 +308,7 @@ function snapshot_for(bucket: GameStatsBucket | undefined): GameStatsSnapshot {
 export interface RecordSessionInput {
   game_id: GameId
   started_at: number
-  register_id: RegisterId
+  register_id: string
   summary: SessionSummary
   trials: SessionTrialInput[]
 }
@@ -360,11 +365,13 @@ export function use_game_stats() {
   }
 
   const reading_stats = computed(() => stats_for('reading'))
+  const harmonics_stats = computed(() => stats_for('harmoniques'))
 
   return {
     store: store_ref,
     record_session,
     stats_for,
     reading_stats,
+    harmonics_stats,
   }
 }

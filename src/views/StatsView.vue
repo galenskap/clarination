@@ -11,6 +11,10 @@ import {
   type GameId,
 } from '@/composables/use_game_stats'
 import {
+  chord_types_short_label,
+  parse_session_chord_types,
+} from '@/domain/chords'
+import {
   format_duration,
   format_reaction_ms,
   format_success_rate,
@@ -25,6 +29,10 @@ const fingering_open = ref(false)
 
 const current = computed(() => stats.stats_for(active_game.value))
 const has_data = computed(() => current.value.session_count > 0)
+const is_harmonics = computed(() => active_game.value === 'harmoniques')
+const fail_count = computed(() =>
+  Math.max(0, current.value.total_attempts - current.value.total_successes),
+)
 
 const date_formatter = new Intl.DateTimeFormat('fr-FR', {
   day: '2-digit',
@@ -36,6 +44,11 @@ function format_session_date(started_at: number): string {
 }
 
 function register_label(register_id: string): string {
+  if (is_harmonics.value) {
+    const qualities = parse_session_chord_types(register_id)
+    if (qualities) return chord_types_short_label(qualities)
+    return register_id
+  }
   if (!is_register_id(register_id)) return register_id
   return register_of(register_id).label
 }
@@ -69,6 +82,7 @@ function select_game(game_id: GameId) {
 }
 
 function show_fingering(note_id: string) {
+  if (is_harmonics.value) return
   fingering_note_id.value = note_id
   fingering_open.value = true
 }
@@ -119,12 +133,20 @@ function close_fingering() {
 
         <div class="stats__kpis">
           <div class="stats__stat stats__stat--attempts">
-            <span class="stats__stat-label">Notes jouées</span>
-            <span class="stats__stat-value">{{ current.total_attempts }}</span>
+            <span class="stats__stat-label">
+              {{ is_harmonics ? 'Accords réussis' : 'Notes jouées' }}
+            </span>
+            <span class="stats__stat-value">
+              {{ is_harmonics ? current.total_successes : current.total_attempts }}
+            </span>
           </div>
           <div class="stats__stat">
-            <span class="stats__stat-label">Parties</span>
-            <span class="stats__stat-value">{{ current.session_count }}</span>
+            <span class="stats__stat-label">
+              {{ is_harmonics ? 'Fautes' : 'Parties' }}
+            </span>
+            <span class="stats__stat-value">
+              {{ is_harmonics ? fail_count : current.session_count }}
+            </span>
           </div>
           <div class="stats__stat stats__stat--rate">
             <span class="stats__stat-label">Réussite</span>
@@ -132,16 +154,30 @@ function close_fingering() {
           </div>
         </div>
 
-        <div class="stats__rank" aria-label="Notes les plus et moins réussies">
+        <div
+          class="stats__rank"
+          :aria-label="
+            is_harmonics
+              ? 'Accords les plus et moins réussis'
+              : 'Notes les plus et moins réussies'
+          "
+        >
           <div class="stats__rank-row stats__rank-row--best">
             <button
               v-for="(note, index) in best_slots"
               :key="`best-${index}`"
               type="button"
               class="stats__rank-item stats__rank-item--best"
-              :class="{ 'stats__rank-item--empty': !note }"
-              :disabled="!note"
-              :aria-label="note ? `Voir le doigté de ${note.american}` : undefined"
+              :class="{
+                'stats__rank-item--empty': !note,
+                'stats__rank-item--static': is_harmonics,
+              }"
+              :disabled="!note || is_harmonics"
+              :aria-label="
+                note && !is_harmonics
+                  ? `Voir le doigté de ${note.american}`
+                  : undefined
+              "
               @click="note && show_fingering(note.note_id)"
             >
               <template v-if="note">
@@ -164,9 +200,14 @@ function close_fingering() {
               :class="{
                 'stats__rank-item--empty': !note,
                 'stats__rank-item--bl': index === 0,
+                'stats__rank-item--static': is_harmonics,
               }"
-              :disabled="!note"
-              :aria-label="note ? `Voir le doigté de ${note.american}` : undefined"
+              :disabled="!note || is_harmonics"
+              :aria-label="
+                note && !is_harmonics
+                  ? `Voir le doigté de ${note.american}`
+                  : undefined
+              "
               @click="note && show_fingering(note.note_id)"
             >
               <template v-if="note">
@@ -182,8 +223,13 @@ function close_fingering() {
           </div>
         </div>
 
-        <section class="stats__chart" aria-label="Temps moyen par note">
-          <h2 class="stats__chart-title">Temps moyen / note</h2>
+        <section
+          class="stats__chart"
+          :aria-label="is_harmonics ? 'Temps moyen par accord' : 'Temps moyen par note'"
+        >
+          <h2 class="stats__chart-title">
+            {{ is_harmonics ? 'Temps moyen / accord' : 'Temps moyen / note' }}
+          </h2>
           <StatsLineChart
             :points="line_points"
             x_label="Sessions"
@@ -403,6 +449,10 @@ function close_fingering() {
 
 .stats__rank-item:disabled {
   cursor: default;
+}
+
+.stats__rank-item--static:disabled:not(.stats__rank-item--empty) {
+  opacity: 1;
 }
 
 .stats__rank-item--best {
