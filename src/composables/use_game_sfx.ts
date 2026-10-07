@@ -1,6 +1,6 @@
 /** Sons de feedback légers (Web Audio), sans fichiers. */
 
-type SfxKind = 'success' | 'fail'
+type SfxKind = 'success' | 'fail' | 'click' | 'click_accent'
 
 let audio_context: AudioContext | null = null
 
@@ -51,12 +51,24 @@ function play_fail(ctx: AudioContext) {
   play_tone(ctx, 155.5, t0 + 0.06, 0.22, 'triangle', 0.09)
 }
 
+function play_click(ctx: AudioContext, accent: boolean) {
+  const t0 = ctx.currentTime
+  if (accent) {
+    play_tone(ctx, 1200, t0, 0.045, 'square', 0.07)
+    play_tone(ctx, 800, t0, 0.03, 'sine', 0.05)
+  } else {
+    play_tone(ctx, 900, t0, 0.03, 'square', 0.035)
+  }
+}
+
 export function use_game_sfx() {
   function play(kind: SfxKind) {
     const ctx = ensure_context()
     if (!ctx) return
     if (kind === 'success') play_success(ctx)
-    else play_fail(ctx)
+    else if (kind === 'fail') play_fail(ctx)
+    else if (kind === 'click_accent') play_click(ctx, true)
+    else play_click(ctx, false)
   }
 
   return { play }

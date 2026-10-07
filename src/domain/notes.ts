@@ -144,3 +144,8 @@ export function american_label(note: MusicalNote): string {
 export function french_label(note: MusicalNote): string {
   return `${FRENCH_LETTER[note.letter]}${note.octave}`
 }
+
+/** Nom français d’une classe de hauteur (sans octave), ex. Fa♯. */
+export function french_pitch_name(letter: NoteLetter): string {
+  return FRENCH_LETTER[letter]
+}

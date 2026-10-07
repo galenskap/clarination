@@ -10,6 +10,7 @@ import {
   use_game_stats,
   type GameId,
 } from '@/composables/use_game_stats'
+import { blues_session_key_label } from '@/domain/blues'
 import {
   chord_types_short_label,
   parse_session_chord_types,
@@ -30,6 +31,8 @@ const fingering_open = ref(false)
 const current = computed(() => stats.stats_for(active_game.value))
 const has_data = computed(() => current.value.session_count > 0)
 const is_harmonics = computed(() => active_game.value === 'harmoniques')
+const is_blues = computed(() => active_game.value === 'blues')
+const is_chord_game = computed(() => is_harmonics.value || is_blues.value)
 const fail_count = computed(() =>
   Math.max(0, current.value.total_attempts - current.value.total_successes),
 )
@@ -48,6 +51,9 @@ function register_label(register_id: string): string {
     const qualities = parse_session_chord_types(register_id)
     if (qualities) return chord_types_short_label(qualities)
     return register_id
+  }
+  if (is_blues.value) {
+    return blues_session_key_label(register_id)
   }
   if (!is_register_id(register_id)) return register_id
   return register_of(register_id).label
@@ -82,7 +88,7 @@ function select_game(game_id: GameId) {
 }
 
 function show_fingering(note_id: string) {
-  if (is_harmonics.value) return
+  if (is_chord_game.value) return
   fingering_note_id.value = note_id
   fingering_open.value = true
 }
@@ -134,18 +140,18 @@ function close_fingering() {
         <div class="stats__kpis">
           <div class="stats__stat stats__stat--attempts">
             <span class="stats__stat-label">
-              {{ is_harmonics ? 'Accords réussis' : 'Notes jouées' }}
+              {{ is_chord_game ? (is_blues ? 'Points' : 'Accords réussis') : 'Notes jouées' }}
             </span>
             <span class="stats__stat-value">
-              {{ is_harmonics ? current.total_successes : current.total_attempts }}
+              {{ is_chord_game ? current.total_successes : current.total_attempts }}
             </span>
           </div>
           <div class="stats__stat">
             <span class="stats__stat-label">
-              {{ is_harmonics ? 'Fautes' : 'Parties' }}
+              {{ is_chord_game ? 'Fautes' : 'Parties' }}
             </span>
             <span class="stats__stat-value">
-              {{ is_harmonics ? fail_count : current.session_count }}
+              {{ is_chord_game ? fail_count : current.session_count }}
             </span>
           </div>
           <div class="stats__stat stats__stat--rate">
@@ -157,7 +163,7 @@ function close_fingering() {
         <div
           class="stats__rank"
           :aria-label="
-            is_harmonics
+            is_chord_game
               ? 'Accords les plus et moins réussis'
               : 'Notes les plus et moins réussies'
           "
@@ -170,11 +176,11 @@ function close_fingering() {
               class="stats__rank-item stats__rank-item--best"
               :class="{
                 'stats__rank-item--empty': !note,
-                'stats__rank-item--static': is_harmonics,
+                'stats__rank-item--static': is_chord_game,
               }"
-              :disabled="!note || is_harmonics"
+              :disabled="!note || is_chord_game"
               :aria-label="
-                note && !is_harmonics
+                note && !is_chord_game
                   ? `Voir le doigté de ${note.american}`
                   : undefined
               "
@@ -200,11 +206,11 @@ function close_fingering() {
               :class="{
                 'stats__rank-item--empty': !note,
                 'stats__rank-item--bl': index === 0,
-                'stats__rank-item--static': is_harmonics,
+                'stats__rank-item--static': is_chord_game,
               }"
-              :disabled="!note || is_harmonics"
+              :disabled="!note || is_chord_game"
               :aria-label="
-                note && !is_harmonics
+                note && !is_chord_game
                   ? `Voir le doigté de ${note.american}`
                   : undefined
               "
@@ -225,10 +231,10 @@ function close_fingering() {
 
         <section
           class="stats__chart"
-          :aria-label="is_harmonics ? 'Temps moyen par accord' : 'Temps moyen par note'"
+          :aria-label="is_chord_game ? 'Temps moyen par accord' : 'Temps moyen par note'"
         >
           <h2 class="stats__chart-title">
-            {{ is_harmonics ? 'Temps moyen / accord' : 'Temps moyen / note' }}
+            {{ is_chord_game ? 'Temps moyen / accord' : 'Temps moyen / note' }}
           </h2>
           <StatsLineChart
             :points="line_points"

@@ -62,6 +62,22 @@ import HomeTile from '@/components/HomeTile.vue'
         </template>
       </HomeTile>
 
+      <HomeTile label="Blues" to="/blues" accent="leaf">
+        <template #icon>
+          <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">
+            <rect x="6" y="8" width="10" height="10" rx="2" />
+            <rect x="19" y="8" width="10" height="10" rx="2" />
+            <rect x="32" y="8" width="10" height="10" rx="2" />
+            <rect x="6" y="21" width="10" height="10" rx="2" />
+            <rect x="19" y="21" width="10" height="10" rx="2" />
+            <rect x="32" y="21" width="10" height="10" rx="2" />
+            <rect x="6" y="34" width="10" height="10" rx="2" />
+            <rect x="19" y="34" width="10" height="10" rx="2" />
+            <rect x="32" y="34" width="10" height="10" rx="2" />
+          </svg>
+        </template>
+      </HomeTile>
+
       <HomeTile label="Stats" to="/stats" accent="sky">
         <template #icon>
           <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">

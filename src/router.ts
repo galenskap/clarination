@@ -5,8 +5,14 @@ import ReadingLevelView from '@/views/ReadingLevelView.vue'
 import ReadingGameView from '@/views/ReadingGameView.vue'
 import HarmonicsSetupView from '@/views/HarmonicsSetupView.vue'
 import HarmonicsGameView from '@/views/HarmonicsGameView.vue'
+import BluesSetupView from '@/views/BluesSetupView.vue'
+import BluesGameView from '@/views/BluesGameView.vue'
 import OptionsView from '@/views/OptionsView.vue'
 import StatsView from '@/views/StatsView.vue'
+import {
+  parse_blues_bpm_query,
+  parse_blues_grid_query,
+} from '@/domain/blues'
 import { parse_chord_types_query } from '@/domain/chords'
 import { is_register_id } from '@/domain/registers'
 
@@ -35,6 +41,17 @@ export const router = createRouter({
       beforeEnter(to) {
         if (!parse_chord_types_query(to.query.types)) {
           return { name: 'harmoniques-setup' }
+        }
+      },
+    },
+    { path: '/blues', name: 'blues-setup', component: BluesSetupView },
+    {
+      path: '/blues/jeu',
+      name: 'blues-game',
+      component: BluesGameView,
+      beforeEnter(to) {
+        if (!parse_blues_grid_query(to.query.grid) || !parse_blues_bpm_query(to.query.bpm)) {
+          return { name: 'blues-setup' }
         }
       },
     },

@@ -11,12 +11,13 @@ import type {
   SessionTrialInput,
 } from '@/domain/session_stats'
 
-export const GAME_IDS = ['reading', 'harmoniques'] as const
+export const GAME_IDS = ['reading', 'harmoniques', 'blues'] as const
 export type GameId = (typeof GAME_IDS)[number]
 
 export const GAME_LABELS: Record<GameId, string> = {
   reading: 'Lecture de notes',
   harmoniques: 'Harmoniques',
+  blues: 'Blues',
 }
 
 const STORAGE_KEY = 'clarina.game_stats'
@@ -366,6 +367,7 @@ export function use_game_stats() {
 
   const reading_stats = computed(() => stats_for('reading'))
   const harmonics_stats = computed(() => stats_for('harmoniques'))
+  const blues_stats = computed(() => stats_for('blues'))
 
   return {
     store: store_ref,
@@ -373,5 +375,6 @@ export function use_game_stats() {
     stats_for,
     reading_stats,
     harmonics_stats,
+    blues_stats,
   }
 }

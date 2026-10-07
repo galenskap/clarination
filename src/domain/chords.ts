@@ -148,8 +148,68 @@ export function is_chord_symbol(value: string): boolean {
   return /^(?:[A-G](?:#|b)?)(?:m|dim|\+|maj7|m7|maj9|m9|7|9)?$/.test(value)
 }
 
-function letter_for_pitch_class(pc: number): NoteLetter {
+export function letter_for_pitch_class(pc: number): NoteLetter {
   return NOTE_LETTERS[((pc % 12) + 12) % 12]
+}
+
+/** Suffixes du plus long au plus court pour éviter `m` avant `m7`. */
+const SYMBOL_SUFFIXES: { suffix: string; quality: ChordQualityId }[] = [
+  { suffix: 'maj9', quality: 'maj9' },
+  { suffix: 'maj7', quality: 'maj7' },
+  { suffix: 'm9', quality: 'min9' },
+  { suffix: 'm7', quality: 'min7' },
+  { suffix: 'dim', quality: 'dim' },
+  { suffix: '9', quality: 'dom9' },
+  { suffix: '7', quality: 'dom7' },
+  { suffix: '+', quality: 'aug' },
+  { suffix: 'm', quality: 'minor' },
+  { suffix: '', quality: 'major' },
+]
+
+/** Parse un symbole catalogue (`C7`, `Bbm9`, `F#dim`) → définition. */
+export function parse_chord_symbol(symbol: string): ChordDefinition | null {
+  if (!is_chord_symbol(symbol)) return null
+  const match = symbol.match(/^([A-G](?:#|b)?)(.*)$/)
+  if (!match) return null
+  const root = match[1] as NoteLetter
+  if (!(root in LETTER_TO_PC)) return null
+  const suffix = match[2]
+  for (const entry of SYMBOL_SUFFIXES) {
+    if (suffix === entry.suffix) {
+      return build_chord(root, entry.quality)
+    }
+  }
+  return null
+}
+
+/**
+ * Libellé détaillé d’un rôle dans un accord
+ * (tierce majeure / mineure, quinte juste / diminuée / augmentée, …).
+ */
+export function chord_tone_detail_label(
+  chord: ChordDefinition,
+  role: ChordRoleId,
+): string {
+  const tone = chord.tones.find((entry) => entry.role === role)
+  if (!tone) return chord_role_label(role)
+  const root_pc = LETTER_TO_PC[chord.root]
+  const interval = (tone.pitch_class - root_pc + 12) % 12
+  switch (role) {
+    case 'root':
+      return 'Fondamentale'
+    case 'third':
+      return interval === 3 ? 'Tierce mineure' : 'Tierce majeure'
+    case 'fifth':
+      if (interval === 6) return 'Quinte diminuée'
+      if (interval === 8) return 'Quinte augmentée'
+      return 'Quinte'
+    case 'seventh':
+      return interval === 11 ? 'Septième majeure' : 'Septième'
+    case 'ninth':
+      return 'Neuvième'
+    default:
+      return chord_role_label(role)
+  }
 }
 
 export function chord_symbol(root: NoteLetter, quality: ChordQualityId): string {
