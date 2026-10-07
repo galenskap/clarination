@@ -12,10 +12,6 @@ import {
 } from '@/composables/use_game_stats'
 import { blues_session_key_label } from '@/domain/blues'
 import {
-  chord_types_short_label,
-  parse_session_chord_types,
-} from '@/domain/chords'
-import {
   format_duration,
   format_reaction_ms,
   format_success_rate,
@@ -28,11 +24,11 @@ const active_game = ref<GameId>('reading')
 const fingering_note_id = ref<string | null>(null)
 const fingering_open = ref(false)
 
+const stats_game_ids = GAME_IDS.filter((game_id) => game_id !== 'harmoniques')
+
 const current = computed(() => stats.stats_for(active_game.value))
 const has_data = computed(() => current.value.session_count > 0)
-const is_harmonics = computed(() => active_game.value === 'harmoniques')
 const is_blues = computed(() => active_game.value === 'blues')
-const is_chord_game = computed(() => is_harmonics.value || is_blues.value)
 const fail_count = computed(() =>
   Math.max(0, current.value.total_attempts - current.value.total_successes),
 )
@@ -47,11 +43,6 @@ function format_session_date(started_at: number): string {
 }
 
 function register_label(register_id: string): string {
-  if (is_harmonics.value) {
-    const qualities = parse_session_chord_types(register_id)
-    if (qualities) return chord_types_short_label(qualities)
-    return register_id
-  }
   if (is_blues.value) {
     return blues_session_key_label(register_id)
   }
@@ -88,7 +79,7 @@ function select_game(game_id: GameId) {
 }
 
 function show_fingering(note_id: string) {
-  if (is_chord_game.value) return
+  if (is_blues.value) return
   fingering_note_id.value = note_id
   fingering_open.value = true
 }
@@ -110,7 +101,7 @@ function close_fingering() {
       <h1>Statistiques</h1>
       <div class="stats__tabs" role="tablist" aria-label="Jeux">
         <button
-          v-for="game_id in GAME_IDS"
+          v-for="game_id in stats_game_ids"
           :key="game_id"
           type="button"
           role="tab"
@@ -140,18 +131,18 @@ function close_fingering() {
         <div class="stats__kpis">
           <div class="stats__stat stats__stat--attempts">
             <span class="stats__stat-label">
-              {{ is_chord_game ? (is_blues ? 'Points' : 'Accords réussis') : 'Notes jouées' }}
+              {{ is_blues ? 'Points' : 'Notes jouées' }}
             </span>
             <span class="stats__stat-value">
-              {{ is_chord_game ? current.total_successes : current.total_attempts }}
+              {{ is_blues ? current.total_successes : current.total_attempts }}
             </span>
           </div>
           <div class="stats__stat">
             <span class="stats__stat-label">
-              {{ is_chord_game ? 'Fautes' : 'Parties' }}
+              {{ is_blues ? 'Fautes' : 'Parties' }}
             </span>
             <span class="stats__stat-value">
-              {{ is_chord_game ? fail_count : current.session_count }}
+              {{ is_blues ? fail_count : current.session_count }}
             </span>
           </div>
           <div class="stats__stat stats__stat--rate">
@@ -163,7 +154,7 @@ function close_fingering() {
         <div
           class="stats__rank"
           :aria-label="
-            is_chord_game
+            is_blues
               ? 'Accords les plus et moins réussis'
               : 'Notes les plus et moins réussies'
           "
@@ -176,11 +167,11 @@ function close_fingering() {
               class="stats__rank-item stats__rank-item--best"
               :class="{
                 'stats__rank-item--empty': !note,
-                'stats__rank-item--static': is_chord_game,
+                'stats__rank-item--static': is_blues,
               }"
-              :disabled="!note || is_chord_game"
+              :disabled="!note || is_blues"
               :aria-label="
-                note && !is_chord_game
+                note && !is_blues
                   ? `Voir le doigté de ${note.american}`
                   : undefined
               "
@@ -206,11 +197,11 @@ function close_fingering() {
               :class="{
                 'stats__rank-item--empty': !note,
                 'stats__rank-item--bl': index === 0,
-                'stats__rank-item--static': is_chord_game,
+                'stats__rank-item--static': is_blues,
               }"
-              :disabled="!note || is_chord_game"
+              :disabled="!note || is_blues"
               :aria-label="
-                note && !is_chord_game
+                note && !is_blues
                   ? `Voir le doigté de ${note.american}`
                   : undefined
               "
@@ -231,10 +222,10 @@ function close_fingering() {
 
         <section
           class="stats__chart"
-          :aria-label="is_chord_game ? 'Temps moyen par accord' : 'Temps moyen par note'"
+          :aria-label="is_blues ? 'Temps moyen par accord' : 'Temps moyen par note'"
         >
           <h2 class="stats__chart-title">
-            {{ is_chord_game ? 'Temps moyen / accord' : 'Temps moyen / note' }}
+            {{ is_blues ? 'Temps moyen / accord' : 'Temps moyen / note' }}
           </h2>
           <StatsLineChart
             :points="line_points"

@@ -45,16 +45,59 @@ const LETTER_TO_PC: Record<NoteLetter, number> = {
   B: 11,
 }
 
+/** Blue notes optionnelles relatives à la fondamentale de l’accord. */
+export type BluesBlueNoteId = 'blue_third' | 'blue_fourth' | 'blue_fifth'
+
+export type BluesBlueNotesOptions = Readonly<Record<BluesBlueNoteId, boolean>>
+
+export const BLUES_BLUE_NOTE_IDS: readonly BluesBlueNoteId[] = [
+  'blue_third',
+  'blue_fourth',
+  'blue_fifth',
+] as const
+
 /** Intervalles blue notes relatifs à la fondamentale : ♭3, 4, ♭5. */
 const BLUE_SPECS: {
-  role: Extract<BluesBingoRoleId, 'blue_third' | 'blue_fourth' | 'blue_fifth'>
+  role: BluesBlueNoteId
   interval: number
   label: string
+  /** Jeton compact pour l’URL / les stats. */
+  token: string
 }[] = [
-  { role: 'blue_third', interval: 3, label: '♭3' },
-  { role: 'blue_fourth', interval: 5, label: 'Quarte' },
-  { role: 'blue_fifth', interval: 6, label: '♭5' },
+  { role: 'blue_third', interval: 3, label: '♭3', token: 'b3' },
+  { role: 'blue_fourth', interval: 5, label: 'Quarte', token: '4' },
+  { role: 'blue_fifth', interval: 6, label: '♭5', token: 'b5' },
 ]
+
+const BLUE_TOKEN_TO_ID: Record<string, BluesBlueNoteId> = {
+  b3: 'blue_third',
+  '3': 'blue_third',
+  '4': 'blue_fourth',
+  b5: 'blue_fifth',
+  '5': 'blue_fifth',
+}
+
+export const BLUES_BLUE_NOTE_OPTIONS: {
+  id: BluesBlueNoteId
+  label: string
+  short_label: string
+}[] = [
+  { id: 'blue_third', label: 'Tierce dim (♭3)', short_label: '♭3' },
+  { id: 'blue_fourth', label: 'Quarte', short_label: '4' },
+  { id: 'blue_fifth', label: 'Quinte dim (♭5)', short_label: '♭5' },
+]
+
+export function empty_blues_blue_notes(): BluesBlueNotesOptions {
+  return { blue_third: false, blue_fourth: false, blue_fifth: false }
+}
+
+export function all_blues_blue_notes(): BluesBlueNotesOptions {
+  return { blue_third: true, blue_fourth: true, blue_fifth: true }
+}
+
+export function has_any_blues_blue_note(options: BluesBlueNotesOptions): boolean {
+  return BLUES_BLUE_NOTE_IDS.some((id) => options[id])
+}
 
 export function is_blues_bpm(value: unknown): value is number {
   return (
@@ -73,9 +116,36 @@ export function parse_blues_bpm_query(raw: unknown): number | null {
   return is_blues_bpm(bpm) ? bpm : null
 }
 
-export function parse_blues_blue_notes_query(raw: unknown): boolean {
-  if (raw === '1' || raw === 'true' || raw === true || raw === 1) return true
-  return false
+/** Encode les blue notes cochées (`b3,4,b5` / `0`). */
+export function blues_blue_notes_query(options: BluesBlueNotesOptions): string {
+  const tokens = BLUE_SPECS.filter((spec) => options[spec.role]).map((spec) => spec.token)
+  return tokens.length > 0 ? tokens.join(',') : '0'
+}
+
+/**
+ * Parse `blue` : `1` / `true` = les trois (ancien format),
+ * `0` / vide = aucune, sinon liste `b3,4,b5`.
+ */
+export function parse_blues_blue_notes_query(raw: unknown): BluesBlueNotesOptions {
+  if (raw === '1' || raw === 'true' || raw === true || raw === 1) {
+    return all_blues_blue_notes()
+  }
+  if (raw == null || raw === '' || raw === '0' || raw === 'false' || raw === false) {
+    return empty_blues_blue_notes()
+  }
+  if (typeof raw !== 'string') return empty_blues_blue_notes()
+
+  const options = {
+    blue_third: false,
+    blue_fourth: false,
+    blue_fifth: false,
+  }
+  for (const part of raw.split(/[,+|]/).map((token) => token.trim().toLowerCase())) {
+    if (!part) continue
+    const id = BLUE_TOKEN_TO_ID[part]
+    if (id) options[id] = true
+  }
+  return options
 }
 
 export function blues_grid_query(chords: readonly ChordDefinition[]): string {
@@ -125,12 +195,19 @@ function chord_pitch_classes(chord: ChordDefinition): Set<number> {
   return new Set(chord.tones.map((tone) => tone.pitch_class))
 }
 
-/** Blue notes absentes de l’accord (relatives à sa fondamentale). */
-export function blue_note_tones(chord: ChordDefinition): BluesBingoTone[] {
+/**
+ * Blue notes absentes de l’accord (relatives à sa fondamentale).
+ * Sans `options`, renvoie les trois candidates (pour neutralité hors bingo).
+ */
+export function blue_note_tones(
+  chord: ChordDefinition,
+  options?: BluesBlueNotesOptions,
+): BluesBingoTone[] {
   const root_pc = LETTER_TO_PC[chord.root]
   const occupied = chord_pitch_classes(chord)
   const tones: BluesBingoTone[] = []
   for (const spec of BLUE_SPECS) {
+    if (options && !options[spec.role]) continue
     const pitch_class = (root_pc + spec.interval) % 12
     if (occupied.has(pitch_class)) continue
     tones.push({
@@ -156,15 +233,13 @@ function chord_tone_as_bingo(chord: ChordDefinition, tone: ChordTone): BluesBing
   }
 }
 
-/** Cases du bingo pour une mesure (notes d’accord ± blue notes). */
+/** Cases du bingo pour une mesure (notes d’accord ± blue notes cochées). */
 export function tones_for_blues_bingo(
   chord: ChordDefinition,
-  count_blue_notes: boolean,
+  blue_notes: BluesBlueNotesOptions,
 ): BluesBingoTone[] {
   const tones = chord.tones.map((tone) => chord_tone_as_bingo(chord, tone))
-  if (count_blue_notes) {
-    tones.push(...blue_note_tones(chord))
-  }
+  tones.push(...blue_note_tones(chord, blue_notes))
   return tones
 }
 
@@ -184,16 +259,28 @@ export function beat_duration_ms(bpm: number): number {
   return 60_000 / bpm
 }
 
-/** Clé compacte pour les stats (`90bpm+blue` / `90bpm`). */
-export function blues_session_key(bpm: number, count_blue_notes: boolean): string {
-  return count_blue_notes ? `${bpm}bpm+blue` : `${bpm}bpm`
+/** Clé compacte pour les stats (`90bpm+b3+4+b5` / `90bpm` ; ancien `+blue`). */
+export function blues_session_key(bpm: number, blue_notes: BluesBlueNotesOptions): string {
+  const tokens = BLUE_SPECS.filter((spec) => blue_notes[spec.role]).map((spec) => spec.token)
+  if (tokens.length === 0) return `${bpm}bpm`
+  return `${bpm}bpm+${tokens.join('+')}`
 }
 
 export function blues_session_key_label(raw: string): string {
-  const match = raw.match(/^(\d+)bpm(\+blue)?$/)
+  const match = raw.match(/^(\d+)bpm(.*)$/)
   if (!match) return raw
   const bpm = match[1]
-  return match[2] ? `${bpm} BPM · blue notes` : `${bpm} BPM`
+  const suffix = match[2] ?? ''
+  if (!suffix) return `${bpm} BPM`
+  if (suffix === '+blue') return `${bpm} BPM · ♭3 · 4 · ♭5`
+
+  const labels: string[] = []
+  for (const part of suffix.split('+').filter(Boolean)) {
+    const id = BLUE_TOKEN_TO_ID[part.toLowerCase()]
+    const meta = BLUES_BLUE_NOTE_OPTIONS.find((entry) => entry.id === id)
+    if (meta) labels.push(meta.short_label)
+  }
+  return labels.length > 0 ? `${bpm} BPM · ${labels.join(' · ')}` : `${bpm} BPM`
 }
 
 export const BLUES_ROOT_OPTIONS: NoteLetter[] = [...NOTE_LETTERS]

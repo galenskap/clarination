@@ -3,14 +3,19 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SquareIconButton from '@/components/SquareIconButton.vue'
 import {
+  BLUES_BLUE_NOTE_OPTIONS,
   BLUES_BPM_DEFAULT,
   BLUES_BPM_MAX,
   BLUES_BPM_MIN,
   BLUES_GRID_SIZE,
   BLUES_ROOT_OPTIONS,
+  all_blues_blue_notes,
+  blues_blue_notes_query,
   blues_grid_query,
   classic_blues_grid,
   empty_blues_grid,
+  type BluesBlueNoteId,
+  type BluesBlueNotesOptions,
 } from '@/domain/blues'
 import {
   CHORD_QUALITIES,
@@ -24,7 +29,11 @@ const router = useRouter()
 
 const cells = ref<(ChordDefinition | null)[]>(empty_blues_grid())
 const bpm = ref(BLUES_BPM_DEFAULT)
-const count_blue_notes = ref(true)
+const blue_notes = ref<BluesBlueNotesOptions>(all_blues_blue_notes())
+
+function set_blue_note(id: BluesBlueNoteId, checked: boolean) {
+  blue_notes.value = { ...blue_notes.value, [id]: checked }
+}
 const preset_root = ref<NoteLetter>('C')
 
 const editing_index = ref<number | null>(null)
@@ -120,7 +129,7 @@ function start_game() {
     query: {
       grid: blues_grid_query(grid),
       bpm: String(bpm.value),
-      blue: count_blue_notes.value ? '1' : '0',
+      blue: blues_blue_notes_query(blue_notes.value),
     },
   })
 }
@@ -232,10 +241,26 @@ function start_game() {
           </div>
         </section>
 
-        <label class="blues-setup__blue">
-          <input v-model="count_blue_notes" type="checkbox" />
-          <span>Compter les blue notes (♭3, quarte, ♭5)</span>
-        </label>
+        <fieldset class="blues-setup__blue" aria-label="Blue notes à compter">
+          <legend class="blues-setup__blue-legend">Compter</legend>
+          <label
+            v-for="option in BLUES_BLUE_NOTE_OPTIONS"
+            :key="option.id"
+            class="blues-setup__blue-item"
+          >
+            <input
+              type="checkbox"
+              :checked="blue_notes[option.id]"
+              @change="
+                set_blue_note(
+                  option.id,
+                  ($event.target as HTMLInputElement).checked,
+                )
+              "
+            />
+            <span>{{ option.label }}</span>
+          </label>
+        </fieldset>
 
         <button
           type="button"
@@ -591,13 +616,27 @@ function start_game() {
 
 .blues-setup__blue {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.35rem 0.85rem;
   flex-shrink: 0;
+  margin: 0;
   padding: 0.15rem 0.35rem;
+  border: none;
   color: var(--color-cream);
   font-weight: var(--font-weight-medium);
   font-size: 0.9rem;
+}
+
+.blues-setup__blue-legend {
+  padding: 0;
+  margin-right: 0.15rem;
+}
+
+.blues-setup__blue-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   cursor: pointer;
 }
 
@@ -769,7 +808,154 @@ function start_game() {
   color: var(--color-cream);
 }
 
-@media (max-width: 820px) {
+/*
+ * Paysage court (iPhone SE, ~375px de haut) : la grille reste à gauche
+ * et se cale sur la hauteur utile, les réglages restent visibles à droite.
+ */
+@media (max-height: 430px) and (orientation: landscape) {
+  .blues-setup__body {
+    grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 0.92fr);
+    gap: 0.5rem;
+    padding: 0 0.55rem 0.3rem;
+  }
+
+  .blues-setup__grid-panel {
+    gap: 0.25rem;
+  }
+
+  .blues-setup__hint {
+    font-size: 0.75rem;
+  }
+
+  .blues-setup__grid {
+    max-height: none;
+    gap: 0.3rem;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+  }
+
+  .blues-cell {
+    padding: 0.15rem;
+  }
+
+  .blues-cell__index {
+    font-size: 0.8rem;
+  }
+
+  .blues-cell__symbol {
+    font-size: 1.05rem;
+  }
+
+  .blues-cell--empty .blues-cell__symbol {
+    font-size: 1.45rem;
+  }
+
+  .blues-setup__controls {
+    gap: 0.35rem;
+    padding: 0 0.1rem 0;
+  }
+
+  .blues-setup__card {
+    padding: 0.45rem 0.7rem;
+    gap: 0.35rem;
+  }
+
+  .blues-setup__card--tempo {
+    padding: 0.3rem 0.65rem;
+  }
+
+  .blues-setup__card-title {
+    font-size: 0.9rem;
+  }
+
+  .blues-setup__root-btn {
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: 1.1rem;
+  }
+
+  .blues-setup__root-value {
+    min-width: 3.4rem;
+    font-size: 1.15rem;
+  }
+
+  .blues-setup__preset,
+  .blues-setup__play {
+    min-height: 2rem;
+    padding: 0.25rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .blues-setup__blue {
+    font-size: 0.75rem;
+    gap: 0.25rem 0.55rem;
+    padding: 0;
+  }
+
+  .blues-setup__tempo-btn {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+}
+
+/* Éditeur en paysage court : fondamentales à gauche, qualités à droite. */
+@media (max-height: 430px) and (orientation: landscape) {
+  .blues-editor__card {
+    max-height: calc(100dvh - 0.8rem);
+  }
+
+  .blues-editor__scroll {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap: 0.45rem 0.9rem;
+    align-content: start;
+    padding: 0.7rem 1rem 0.45rem;
+  }
+
+  .blues-editor__head {
+    grid-column: 1 / -1;
+  }
+
+  .blues-editor__head h2 {
+    font-size: 1.2rem;
+  }
+
+  .blues-editor__preview {
+    font-size: 1.6rem;
+  }
+
+  .blues-editor__section {
+    gap: 0.4rem;
+    min-height: 0;
+  }
+
+  .blues-editor__section h3 {
+    font-size: 0.95rem;
+  }
+
+  .blues-editor .blues-chip {
+    min-height: 1.9rem;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.95rem;
+  }
+
+  .blues-editor__qualities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .blues-editor .blues-chip--quality {
+    min-height: 2.35rem;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.3rem;
+  }
+
+  .blues-editor__actions {
+    padding: 0.4rem 1rem 0.55rem;
+  }
+}
+
+/* Portrait étroit : la grille passe au-dessus des réglages. */
+@media (max-width: 820px) and (orientation: portrait) {
   .blues-setup__body {
     grid-template-columns: 1fr;
     overflow: auto;

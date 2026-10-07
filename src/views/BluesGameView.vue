@@ -13,7 +13,9 @@ import { use_game_stats } from '@/composables/use_game_stats'
 import { use_microphone } from '@/composables/use_microphone'
 import { use_pitch_detector } from '@/composables/use_pitch_detector'
 import {
+  BLUES_BLUE_NOTE_OPTIONS,
   blues_session_key,
+  has_any_blues_blue_note,
   parse_blues_blue_notes_query,
   parse_blues_bpm_query,
   parse_blues_grid_query,
@@ -40,6 +42,14 @@ let navigating_home = false
 const selected_grid = computed(() => parse_blues_grid_query(route.query.grid))
 const selected_bpm = computed(() => parse_blues_bpm_query(route.query.bpm))
 const selected_blue = computed(() => parse_blues_blue_notes_query(route.query.blue))
+
+const blue_meta_label = computed(() => {
+  const options = selected_blue.value
+  if (!has_any_blues_blue_note(options)) return ''
+  return BLUES_BLUE_NOTE_OPTIONS.filter((entry) => options[entry.id])
+    .map((entry) => entry.short_label)
+    .join(' · ')
+})
 
 const config_ok = computed(
   () => selected_grid.value != null && selected_bpm.value != null,
@@ -240,7 +250,7 @@ onUnmounted(() => {
       <h1>Blues</h1>
       <span v-if="selected_bpm != null" class="blues__meta">
         {{ selected_bpm }} BPM
-        <template v-if="selected_blue"> · blue</template>
+        <template v-if="blue_meta_label"> · {{ blue_meta_label }}</template>
       </span>
       <MicSourceSelect
         v-if="mic.status.value === 'granted'"
@@ -735,6 +745,29 @@ onUnmounted(() => {
   }
   100% {
     transform: scale(1);
+  }
+}
+
+/*
+ * Paysage court (iPhone SE) : la grille reste lisible à gauche,
+ * le bingo garde assez de largeur pour ses libellés.
+ */
+@media (max-height: 450px) {
+  .blues__body {
+    grid-template-columns: minmax(8.5rem, 0.68fr) minmax(16rem, 1.32fr);
+  }
+
+  .blues__beat-symbol {
+    font-size: clamp(0.85rem, 3.4vh, 1.2rem);
+  }
+
+  .blues__current-chord {
+    font-size: clamp(1.1rem, 4.8vh, 1.6rem);
+  }
+
+  .blues__cell-role {
+    font-size: clamp(0.58rem, 2vh, 0.72rem);
+    line-height: 1.05;
   }
 }
 </style>

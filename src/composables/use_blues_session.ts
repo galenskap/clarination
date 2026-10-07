@@ -3,11 +3,13 @@ import {
   beat_duration_ms,
   BLUES_BEATS_PER_MEASURE,
   BLUES_GRID_SIZE,
+  empty_blues_blue_notes,
   is_blue_note_pitch,
   match_blues_bingo_tone,
   tones_for_blues_bingo,
   type BluesBingoRoleId,
   type BluesBingoTone,
+  type BluesBlueNotesOptions,
 } from '@/domain/blues'
 import type { ChordDefinition } from '@/domain/chords'
 import { parse_note_id, type MusicalNote } from '@/domain/notes'
@@ -56,7 +58,7 @@ export type BluesMetronomeClick = 'accent' | 'beat'
 export function use_blues_session() {
   const grid = ref<ChordDefinition[]>([])
   const bpm = ref(90)
-  const count_blue_notes = ref(false)
+  const blue_notes = ref<BluesBlueNotesOptions>(empty_blues_blue_notes())
   const measure_index = ref(0)
   const beat_in_measure = ref(0)
   const measure = ref<BluesMeasureState | null>(null)
@@ -83,7 +85,7 @@ export function use_blues_session() {
   const max_points = computed(() => {
     if (grid.value.length === 0) return 0
     return grid.value.reduce(
-      (sum, chord) => sum + tones_for_blues_bingo(chord, count_blue_notes.value).length,
+      (sum, chord) => sum + tones_for_blues_bingo(chord, blue_notes.value).length,
       0,
     )
   })
@@ -109,7 +111,7 @@ export function use_blues_session() {
       measure.value = null
       return
     }
-    const tones = tones_for_blues_bingo(chord, count_blue_notes.value)
+    const tones = tones_for_blues_bingo(chord, blue_notes.value)
     measure.value = {
       chord,
       tones,
@@ -201,14 +203,14 @@ export function use_blues_session() {
   function start_session(
     selected_grid: readonly ChordDefinition[],
     selected_bpm: number,
-    blue_notes: boolean,
+    selected_blue_notes: BluesBlueNotesOptions,
   ) {
     if (selected_grid.length !== BLUES_GRID_SIZE) {
       throw new Error('La grille blues doit contenir 12 accords')
     }
     grid.value = selected_grid.map((chord) => ({ ...chord, tones: [...chord.tones] }))
     bpm.value = selected_bpm
-    count_blue_notes.value = blue_notes
+    blue_notes.value = { ...selected_blue_notes }
     clear_feedback_timeout()
     fault_feedback.value = null
     fill_feedback.value = null
@@ -344,11 +346,8 @@ export function use_blues_session() {
 
     const tone = match_blues_bingo_tone(measure.value.tones, note)
     if (!tone) {
-      /* Blue notes neutres si l’option est décochée. */
-      if (
-        !count_blue_notes.value &&
-        is_blue_note_pitch(measure.value.chord, pc)
-      ) {
+      /* Blue notes non cochées : neutres (ni point ni faute). */
+      if (is_blue_note_pitch(measure.value.chord, pc)) {
         locked_note_id = note.note_id
         confirm_count = 0
         confirm_pitch_class = null
@@ -372,7 +371,7 @@ export function use_blues_session() {
   return {
     grid,
     bpm,
-    count_blue_notes,
+    blue_notes,
     measure_index,
     beat_in_measure,
     measure,
